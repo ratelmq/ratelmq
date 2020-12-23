@@ -9,4 +9,7 @@ repository = "https://github.com/ratelmq/ratelmq"
 
 [dependencies]
 tokio = { version = "0.3.3", features = ["full"] }
+tokio-util = { version="0.5.0", features = ["codec"]}
 bytes = "0.6.0"
+bitflags = "1.2.1"
+num_enum = "0.5.1"
