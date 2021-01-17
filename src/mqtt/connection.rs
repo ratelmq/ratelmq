@@ -1,6 +1,6 @@
 use tokio::net::TcpStream;
 
-use crate::mqtt::packets::{ControlPacket};
+use crate::mqtt::packets::ControlPacket;
 use crate::mqtt::transport::mqtt_packets_stream::MqttPacketsStream;
 use crate::mqtt::transport::packet_encoder::PacketEncoder;
 use tokio::io::Error;
