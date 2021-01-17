@@ -4,14 +4,12 @@ use bitflags::_core::str::Utf8Error;
 use bytes::{Buf, BufMut, BytesMut};
 use tokio::io::{Error, ErrorKind};
 
-use crate::mqtt::packets::{
-    ControlPacket, ControlPacketType, FIXED_HEADER_MAX_SIZE,
-};
+use crate::mqtt::packets::connect::ConnectPacket;
 use crate::mqtt::packets::ControlPacketType::Connect;
+use crate::mqtt::packets::{ControlPacket, ControlPacketType, FIXED_HEADER_MAX_SIZE};
 use crate::mqtt::parser::Parser;
 use crate::mqtt::transport::packet_encoder::PacketEncoder;
 use crate::mqtt::utils::{parse_string, parse_u16};
-use crate::mqtt::packets::connect::ConnectPacket;
 
 #[derive(Debug, PartialEq)]
 enum ParserState {

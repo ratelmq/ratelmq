@@ -11,7 +11,11 @@ pub struct MqttBytesStream {
 }
 
 impl MqttBytesStream {
-    pub fn new(read_buffer_size: usize, write_buffer_size: usize, tcp_stream: TcpStream) -> MqttBytesStream {
+    pub fn new(
+        read_buffer_size: usize,
+        write_buffer_size: usize,
+        tcp_stream: TcpStream,
+    ) -> MqttBytesStream {
         MqttBytesStream {
             read_buffer: BytesMut::with_capacity(read_buffer_size),
             write_buffer: BytesMut::with_capacity(write_buffer_size),

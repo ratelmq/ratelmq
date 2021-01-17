@@ -25,7 +25,10 @@ impl Connection {
         self.mqtt_streamm.read_packet().await
     }
 
-    pub async fn write_packet(&mut self, packet: &(impl PacketEncoder + Sync)) -> Result<(), Error> {
+    pub async fn write_packet(
+        &mut self,
+        packet: &(impl PacketEncoder + Sync),
+    ) -> Result<(), Error> {
         self.mqtt_streamm.write_packet(packet).await?;
         Ok(())
     }

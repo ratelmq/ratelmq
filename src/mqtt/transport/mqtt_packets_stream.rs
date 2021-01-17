@@ -1,10 +1,10 @@
-use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
-use tokio::net::TcpStream;
 use crate::mqtt::packets::ControlPacket;
-use tokio::io::Error;
-use crate::mqtt::transport::packet_encoder::PacketEncoder;
 use crate::mqtt::packets::ControlPacket::Connect;
+use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
 use crate::mqtt::transport::packet_decoder::PacketDecoder;
+use crate::mqtt::transport::packet_encoder::PacketEncoder;
+use tokio::io::Error;
+use tokio::net::TcpStream;
 
 pub struct MqttPacketsStream {
     mqtt_stream: MqttBytesStream,
@@ -14,7 +14,7 @@ impl MqttPacketsStream {
     pub fn new(buffer_size: usize, mut stream: TcpStream) -> MqttPacketsStream {
         MqttPacketsStream {
             // stream
-            mqtt_stream: MqttBytesStream::new(8096, 8096, stream)
+            mqtt_stream: MqttBytesStream::new(8096, 8096, stream),
         }
     }
 
@@ -26,18 +26,21 @@ impl MqttPacketsStream {
         let mut control_packet = ControlPacket::new(packet_type);
 
         match &mut control_packet {
-           Connect(cp) => {
-               cp.parse_fixed_header_flags(first_byte);
-               cp.parse_variable_header(&mut self.mqtt_stream).await?;
-               cp.parse_payload(&mut self.mqtt_stream).await?;
-           }
-            _ => unimplemented!()
+            Connect(cp) => {
+                cp.parse_fixed_header_flags(first_byte);
+                cp.parse_variable_header(&mut self.mqtt_stream).await?;
+                cp.parse_payload(&mut self.mqtt_stream).await?;
+            }
+            _ => unimplemented!(),
         }
 
         Ok(control_packet)
     }
 
-    pub async fn write_packet(&mut self, packet: &(impl PacketEncoder + Sync)) -> Result<(), Error> {
+    pub async fn write_packet(
+        &mut self,
+        packet: &(impl PacketEncoder + Sync),
+    ) -> Result<(), Error> {
         println!("Writing packet");
         packet.encode_fixed_header(&mut self.mqtt_stream).await?;
         packet.encode_variable_header(&mut self.mqtt_stream).await?;

@@ -60,9 +60,7 @@ async fn process(mut socket: TcpStream, mut manager: MqttManager) {
                             manager.connect(&cp)
                         };
 
-                        connection.write_packet(&conn_ack)
-                            .await
-                            .unwrap();
+                        connection.write_packet(&conn_ack).await.unwrap();
                     }
                     _ => unimplemented!(),
                 }
