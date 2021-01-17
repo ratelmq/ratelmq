@@ -4,11 +4,14 @@ use bitflags::_core::str::Utf8Error;
 use bytes::{Buf, BufMut, BytesMut};
 use tokio::io::{Error, ErrorKind};
 
-use crate::mqtt::packets::ControlPacketType::Connect;
 use crate::mqtt::packets::{
-    ConnectPacket, ControlPacket, ControlPacketType, FIXED_HEADER_MAX_SIZE,
+    ControlPacket, ControlPacketType, FIXED_HEADER_MAX_SIZE,
 };
+use crate::mqtt::packets::ControlPacketType::Connect;
 use crate::mqtt::parser::Parser;
+use crate::mqtt::transport::packet_encoder::PacketEncoder;
+use crate::mqtt::utils::{parse_string, parse_u16};
+use crate::mqtt::packets::connect::ConnectPacket;
 
 #[derive(Debug, PartialEq)]
 enum ParserState {
@@ -85,13 +88,13 @@ impl MqttCodec {
     fn parse_variable_header(&mut self, buffer: &mut BytesMut) -> Result<(), Error> {
         println!("Parsing variable header, buffer len: {}", buffer.len());
 
-        let protocol_name = MqttCodec::parse_string(buffer).unwrap();
+        let protocol_name = parse_string(buffer).unwrap();
 
         let protocol_level = buffer[0];
         let connect_flags = buffer[1];
         buffer.advance(2);
 
-        let keep_alive = MqttCodec::parse_u16(buffer);
+        let keep_alive = parse_u16(buffer);
 
         println!("Parsed variable header");
         println!("\tprotocol name: {:#?}, protocol level: {:#08b}, connect flags: {:#08b}, keep alive: {}",
@@ -104,7 +107,7 @@ impl MqttCodec {
     }
 
     fn parse_payload(&mut self, buffer: &mut BytesMut) -> Result<(), Error> {
-        let client_id = MqttCodec::parse_string(buffer).unwrap();
+        let client_id = parse_string(buffer).unwrap();
         self.remaining_length -= 2;
 
         println!("\tclient id: {:#?}", &client_id);
@@ -170,25 +173,6 @@ impl Decoder for MqttCodec {
 }
 
 impl MqttCodec {
-    fn parse_string(buffer: &mut BytesMut) -> Result<String, Utf8Error> {
-        let string_size = MqttCodec::parse_u16(buffer) as usize;
-
-        let str_buf = buffer.split_to(string_size);
-        let str = str::from_utf8(str_buf.as_ref())?;
-        println!(
-            "\tparsed string: {:#?}, of length: {:#?}",
-            str, &string_size
-        );
-
-        Ok(String::from(str))
-    }
-
-    fn parse_u16(buffer: &mut BytesMut) -> u16 {
-        let string_size: u16 = ((buffer[0] as u16) << 8) + buffer[1] as u16;
-        buffer.advance(2);
-        string_size
-    }
-
     fn create_packet(packet_type: &ControlPacketType) -> ControlPacket {
         match packet_type {
             Connect => ControlPacket::Connect(ConnectPacket::default()),
@@ -199,57 +183,14 @@ impl MqttCodec {
 
 impl Encoder for MqttCodec {
     fn encode(&mut self, packet: &ControlPacket, buffer: &mut BytesMut) -> Result<(), Error> {
-        self.write_fixed_header(packet, buffer);
-        self.write_variable_header(packet, buffer);
-        Ok(())
-    }
-}
-
-impl MqttCodec {
-    fn write_fixed_header(
-        &mut self,
-        packet: &ControlPacket,
-        buffer: &mut BytesMut,
-    ) -> Result<(), Error> {
-        let packet_type = match packet {
-            ControlPacket::ConnAck(c) => 0x02,
-            _ => unimplemented!(),
-        };
-        buffer.put_u8(packet_type << 4);
-
-        let remaining_length = self.calculate_remaining_length(packet);
-        self.encode_remaining_length(remaining_length, buffer);
-
-        Ok(())
-    }
-
-    fn calculate_remaining_length(&self, packet: &ControlPacket) -> u64 {
         match packet {
-            ControlPacket::ConnAck(_) => 2,
-            _ => unimplemented!(),
-        }
-    }
-
-    fn encode_remaining_length(&self, mut remaining_length: u64, buffer: &mut BytesMut) {
-        while remaining_length > 0 {
-            let mut encoded_byte: u8 = (remaining_length % 128) as u8;
-            remaining_length = remaining_length / 128;
-
-            if remaining_length > 0 {
-                encoded_byte = encoded_byte | 128;
-            }
-
-            buffer.put_u8(encoded_byte);
-        }
-    }
-
-    fn write_variable_header(&self, packet: &ControlPacket, buffer: &mut BytesMut) {
-        match packet {
-            ControlPacket::ConnAck(c) => {
-                buffer.put_u8(c.session_present as u8);
-                buffer.put_u8(c.return_code.clone() as u8);
+            ControlPacket::ConnAck(ca) => {
+                // ca.encode_fixed_header(buffer);
+                // ca.encode_variable_header(buffer);
+                // ca.encode_body(buffer);
             }
             _ => unimplemented!(),
         }
+        Ok(())
     }
 }

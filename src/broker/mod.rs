@@ -1,5 +1,7 @@
-use crate::mqtt::packets::ConnAckReturnCode::Accepted;
-use crate::mqtt::packets::{ConnAckPacket, ConnectPacket};
+use crate::mqtt::packets::connack::ConnAckReturnCode::Accepted;
+use crate::mqtt::packets::connack::ConnAckPacket;
+use crate::mqtt::packets::connect::ConnectPacket;
+use log::info;
 
 pub struct Manager {}
 
@@ -9,10 +11,7 @@ impl Manager {
     }
 
     pub fn connect(&self, connect_packet: &ConnectPacket) -> ConnAckPacket {
-        println!(
-            "New client '{}' connected",
-            connect_packet.client_identifier
-        );
+        info!("New client {:?} connected", connect_packet.client_id);
 
         ConnAckPacket {
             session_present: false,
