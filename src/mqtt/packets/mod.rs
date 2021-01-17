@@ -1,10 +1,15 @@
 use num_enum::FromPrimitive;
 
-use crate::mqtt::packets::ConnAckReturnCode::Accepted;
 use crate::mqtt::packets::ProtocolVersion::Mqtt3;
 use crate::mqtt::packets::QoS::AtMostOnce;
+use crate::mqtt::packets::connect::ConnectPacket;
+use crate::mqtt::packets::connack::ConnAckPacket;
+use crate::mqtt::packets::ControlPacket::{Test, Connect, ConnAck};
 
 pub const FIXED_HEADER_MAX_SIZE: usize = 1 + 4;
+
+pub mod connect;
+pub mod connack;
 
 #[derive(Eq, PartialEq, Debug, FromPrimitive)]
 #[repr(u8)]
@@ -60,36 +65,12 @@ pub enum ControlPacket {
     ConnAck(ConnAckPacket),
 }
 
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct ConnectPacket {
-    // header
-    pub version: ProtocolVersion,
-    pub clean_session: bool,
-    pub will_flag: bool,
-    pub will_qos: QoS,
-    pub will_retain: bool,
-    pub keep_alive_seconds: u16,
-
-    // payload
-    pub client_identifier: &'static str,
-    pub will_topic: Option<&'static str>,
-    pub will_message: Option<&'static str>,
-    pub user_name: Option<&'static str>,
-    pub password: Option<&'static str>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum ConnAckReturnCode {
-    Accepted = 0x00,
-    UnacceptableProtocolVersion,
-    IdentifierRejected,
-    ServerUnavailable,
-    BadUserNameOrPassword,
-    NotAuthorized,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ConnAckPacket {
-    pub session_present: bool,
-    pub return_code: ConnAckReturnCode,
+impl ControlPacket {
+    pub fn new(packet_id: u8) -> ControlPacket {
+        match packet_id {
+            1 => Connect(ConnectPacket::default()),
+            2 => ConnAck(ConnAckPacket::default()),
+            _ => panic!("Invalid packet id!")
+        }
+    }
 }
