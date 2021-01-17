@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use bytes::{BufMut, BytesMut};
 use tokio::io::Error;
 
 use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
@@ -19,10 +18,10 @@ pub async fn encode_remaining_length(
 ) -> Result<(), Error> {
     while remaining_length > 0 {
         let mut encoded_byte: u8 = (remaining_length % 128) as u8;
-        remaining_length = remaining_length / 128;
+        remaining_length /= 128;
 
         if remaining_length > 0 {
-            encoded_byte = encoded_byte | 128;
+            encoded_byte |= 128;
         }
 
         buffer.put_u8(encoded_byte).await?;

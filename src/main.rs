@@ -1,21 +1,12 @@
-use std::fs::read;
-use std::net::Shutdown;
 use std::sync::{Arc, Mutex};
 
-use bytes::BytesMut;
 use dotenv::dotenv;
 use log::info;
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, Error};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::stream::StreamExt;
-use tokio_util::codec::{Decoder, Framed};
 
 use crate::broker::Manager;
 use crate::mqtt::connection::Connection;
-use crate::mqtt::packets::connack::ConnAckReturnCode::Accepted;
-use crate::mqtt::packets::connect::ConnectPacket;
 use crate::mqtt::packets::ControlPacket;
-use crate::mqtt::parser::Parser;
 
 mod broker;
 mod mqtt;
@@ -45,7 +36,7 @@ async fn main() {
     }
 }
 
-async fn process(mut socket: TcpStream, mut manager: MqttManager) {
+async fn process(socket: TcpStream, manager: MqttManager) {
     let mut connection = Connection::new(socket, 4096);
     loop {
         match connection.read_packet().await {
