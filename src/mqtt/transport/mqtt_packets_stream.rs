@@ -11,7 +11,7 @@ pub struct MqttPacketsStream {
 }
 
 impl MqttPacketsStream {
-    pub fn new(buffer_size: usize, mut stream: TcpStream) -> MqttPacketsStream {
+    pub fn new(buffer_size: usize, stream: TcpStream) -> MqttPacketsStream {
         MqttPacketsStream {
             // stream
             mqtt_stream: MqttBytesStream::new(8096, 8096, stream),
@@ -27,7 +27,7 @@ impl MqttPacketsStream {
 
         match &mut control_packet {
             Connect(cp) => {
-                cp.parse_fixed_header_flags(first_byte);
+                cp.parse_fixed_header_flags(first_byte)?;
                 cp.parse_variable_header(&mut self.mqtt_stream).await?;
                 cp.parse_payload(&mut self.mqtt_stream).await?;
             }

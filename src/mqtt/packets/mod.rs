@@ -2,7 +2,7 @@ use num_enum::FromPrimitive;
 
 use crate::mqtt::packets::connack::ConnAckPacket;
 use crate::mqtt::packets::connect::ConnectPacket;
-use crate::mqtt::packets::ControlPacket::{ConnAck, Connect, Test};
+use crate::mqtt::packets::ControlPacket::{ConnAck, Connect};
 use crate::mqtt::packets::ProtocolVersion::Mqtt3;
 use crate::mqtt::packets::QoS::AtMostOnce;
 

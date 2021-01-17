@@ -1,5 +1,3 @@
-use std::str::Utf8Error;
-
 use bytes::{Buf, BufMut, BytesMut};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, Error, ErrorKind};
 use tokio::net::TcpStream;
@@ -24,7 +22,7 @@ impl MqttBytesStream {
     }
 
     pub fn tcp_stream(&self) -> &TcpStream {
-        self.tcp_stream()
+        &self.tcp_stream
     }
 }
 
@@ -113,7 +111,7 @@ impl MqttBytesStream {
         Ok(())
     }
 
-    pub async fn put_string(&mut self, string: &String) -> Result<(), Error> {
+    pub async fn put_string(&mut self, string: &str) -> Result<(), Error> {
         self.put_u16(string.len() as u16).await?;
         self.put_bytes(BytesMut::from(string.as_bytes())).await?;
 
