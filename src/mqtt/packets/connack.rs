@@ -51,4 +51,3 @@ impl PacketEncoder for ConnAckPacket {
         Ok(())
     }
 }
-

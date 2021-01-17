@@ -1,8 +1,8 @@
 use crate::mqtt::packets::{ProtocolVersion, QoS};
-use crate::mqtt::transport::packet_decoder::PacketDecoder;
-use tokio::io::Error;
 use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
+use crate::mqtt::transport::packet_decoder::PacketDecoder;
 use async_trait::async_trait;
+use tokio::io::Error;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct ConnectPacket {
@@ -32,7 +32,10 @@ impl PacketDecoder for ConnectPacket {
         10
     }
 
-    async fn parse_variable_header(&mut self, buffer: &mut MqttBytesStream) -> Result<usize, Error> {
+    async fn parse_variable_header(
+        &mut self,
+        buffer: &mut MqttBytesStream,
+    ) -> Result<usize, Error> {
         println!("Parsing variable header");
 
         println!("\t protocol_name");

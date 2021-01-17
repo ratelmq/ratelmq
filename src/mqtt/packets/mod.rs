@@ -1,15 +1,15 @@
 use num_enum::FromPrimitive;
 
+use crate::mqtt::packets::connack::ConnAckPacket;
+use crate::mqtt::packets::connect::ConnectPacket;
+use crate::mqtt::packets::ControlPacket::{ConnAck, Connect, Test};
 use crate::mqtt::packets::ProtocolVersion::Mqtt3;
 use crate::mqtt::packets::QoS::AtMostOnce;
-use crate::mqtt::packets::connect::ConnectPacket;
-use crate::mqtt::packets::connack::ConnAckPacket;
-use crate::mqtt::packets::ControlPacket::{Test, Connect, ConnAck};
 
 pub const FIXED_HEADER_MAX_SIZE: usize = 1 + 4;
 
-pub mod connect;
 pub mod connack;
+pub mod connect;
 
 #[derive(Eq, PartialEq, Debug, FromPrimitive)]
 #[repr(u8)]
@@ -70,7 +70,7 @@ impl ControlPacket {
         match packet_id {
             1 => Connect(ConnectPacket::default()),
             2 => ConnAck(ConnAckPacket::default()),
-            _ => panic!("Invalid packet id!")
+            _ => panic!("Invalid packet id!"),
         }
     }
 }
