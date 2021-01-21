@@ -1,8 +1,10 @@
 # Roadmap
 
-This file aims to present a direction of RatelMQ development.
+This file aims to present a direction of the RatelMQ development.
+This is a list of features that are meant to be implemented.
+Please feel free to create a PR if You think that we are missing something!
 
-Because of the early stage of development, the features and dates below are subject to change.
+*Because of the early stage of development, the features and dates below are subject to change.*
 
 ## 0.1 - TBD
 
@@ -37,16 +39,22 @@ Because of the early stage of development, the features and dates below are subj
     2. Webhook
 4. Extensibility
     1. HTTP API
-    1. Webhooks
+    2. Webhooks
 
 ## 0.5 - TBD
 
+1. HTTP dashboard
+2. Management CLI app
+3. Plugins
+4. Proxy protocol
+
+## 0.6 - TBD
+
 1. Clustering
-2. HTTP dashboard
-3. Management CLI app
-4. Plugins
 
 ## 1.0 - TBD
 
 1. Stabilization of broker, APIs
 2. Performance
+3. Resources usage model estimation
+3. Deployment examples
