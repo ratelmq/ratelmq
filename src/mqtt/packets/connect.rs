@@ -1,8 +1,10 @@
+use async_trait::async_trait;
+use tokio::io::Error;
+
 use crate::mqtt::packets::{ProtocolVersion, QoS};
 use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
 use crate::mqtt::transport::packet_decoder::PacketDecoder;
-use async_trait::async_trait;
-use tokio::io::Error;
+use log::trace;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct ConnectPacket {
@@ -36,29 +38,29 @@ impl PacketDecoder for ConnectPacket {
         &mut self,
         buffer: &mut MqttBytesStream,
     ) -> Result<usize, Error> {
-        println!("Parsing variable header");
+        trace!("Parsing variable header");
 
-        println!("\t protocol_name");
         let protocol_name = buffer.get_string().await?;
-
-        println!("\t protocol_level");
         let protocol_level = buffer.get_u8().await?;
-        println!("\t connect_flags");
         let connect_flags = buffer.get_u8().await?;
 
         self.keep_alive_seconds = buffer.get_u16().await?;
 
-        println!("Parsed variable header");
-        println!("\tprotocol name: {:#?}, protocol level: {:#08b}, connect flags: {:#08b}, keep alive: {}",
+        trace!("Parsed variable header");
+        trace!("\tprotocol name: {:#?}, protocol level: {:#08b}, connect flags: {:#08b}, keep alive: {}",
                  &protocol_name, &protocol_level, &connect_flags, &self.keep_alive_seconds);
 
         Ok(self.variable_header_size())
     }
 
-    async fn parse_payload(&mut self, buffer: &mut MqttBytesStream) -> Result<usize, Error> {
+    async fn parse_payload(
+        &mut self,
+        buffer: &mut MqttBytesStream,
+        _remaining_length: u64,
+    ) -> Result<usize, Error> {
         self.client_id = buffer.get_string().await?;
 
-        println!("\tclient id: {:#?}", &self.client_id);
+        trace!("\tclient id: {:#?}", &self.client_id);
 
         Ok(2 + self.client_id.len())
     }

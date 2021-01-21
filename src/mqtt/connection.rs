@@ -17,7 +17,6 @@ impl Connection {
     }
 
     pub async fn read_packet(&mut self) -> Result<ControlPacket, Error> {
-        println!("Reading packet");
         self.mqtt_stream.read_packet().await
     }
 

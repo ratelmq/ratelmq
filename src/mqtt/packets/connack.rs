@@ -26,12 +26,6 @@ pub struct ConnAckPacket {
     pub return_code: ConnAckReturnCode,
 }
 
-impl ConnAckPacket {
-    pub fn packet_id() -> u8 {
-        2u8
-    }
-}
-
 #[async_trait]
 impl PacketEncoder for ConnAckPacket {
     async fn encode_fixed_header(&self, buffer: &mut MqttBytesStream) -> Result<(), Error> {
