@@ -1,6 +1,7 @@
 use crate::mqtt::packets::connack::ConnAckPacket;
 use crate::mqtt::packets::connack::ConnAckReturnCode::Accepted;
 use crate::mqtt::packets::connect::ConnectPacket;
+use crate::mqtt::packets::disconnect::DisconnectPacket;
 use crate::mqtt::packets::publish::PublishPacket;
 use log::info;
 
@@ -20,7 +21,9 @@ impl Manager {
         }
     }
 
-    pub fn publish(&self, publish_packet: &PublishPacket) -> Option<()> {
+    pub fn disconnect(&self, _disconnect_packet: &DisconnectPacket) {}
+
+    pub fn publish(&self, _publish_packet: &PublishPacket) -> Option<()> {
         None
     }
 }

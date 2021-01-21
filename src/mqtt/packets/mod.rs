@@ -1,5 +1,3 @@
-use num_enum::FromPrimitive;
-
 use crate::mqtt::packets::connack::ConnAckPacket;
 use crate::mqtt::packets::connect::ConnectPacket;
 use crate::mqtt::packets::disconnect::DisconnectPacket;

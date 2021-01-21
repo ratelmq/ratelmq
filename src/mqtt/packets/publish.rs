@@ -1,9 +1,9 @@
-use crate::mqtt::packets::{ProtocolVersion, QoS};
+use crate::mqtt::packets::QoS;
 use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
 use crate::mqtt::transport::packet_decoder::PacketDecoder;
 use async_trait::async_trait;
 use bytes::BytesMut;
-use log::{debug, trace};
+use log::trace;
 use tokio::io::Error;
 
 #[derive(Debug, PartialEq, Clone, Default)]

@@ -1,7 +1,7 @@
 pub struct MqttListener {}
 
 impl MqttListener {
-    pub fn new(address: &str) -> MqttListener {
+    pub fn new(_address: &str) -> MqttListener {
         MqttListener {}
     }
 }

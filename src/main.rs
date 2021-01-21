@@ -8,6 +8,6 @@ mod mqtt;
 async fn main() {
     Application::init();
 
-    let mut app = Box::new(Application::new());
+    let app = Box::new(Application::new());
     app.run().await;
 }

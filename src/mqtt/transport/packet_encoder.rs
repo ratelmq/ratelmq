@@ -7,7 +7,7 @@ use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
 pub trait PacketEncoder {
     async fn encode_fixed_header(&self, buffer: &mut MqttBytesStream) -> Result<(), Error>;
     async fn encode_variable_header(&self, buffer: &mut MqttBytesStream) -> Result<(), Error>;
-    async fn encode_body(&self, buffer: &mut MqttBytesStream) -> Result<(), Error> {
+    async fn encode_body(&self, _buffer: &mut MqttBytesStream) -> Result<(), Error> {
         Ok(())
     }
 }
