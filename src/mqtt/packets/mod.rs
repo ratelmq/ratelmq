@@ -1,7 +1,7 @@
-use crate::mqtt::packets::connack::ConnAckPacket;
-use crate::mqtt::packets::connect::ConnectPacket;
-use crate::mqtt::packets::disconnect::DisconnectPacket;
-use crate::mqtt::packets::publish::PublishPacket;
+pub use crate::mqtt::packets::connack::ConnAckPacket;
+pub use crate::mqtt::packets::connect::ConnectPacket;
+pub use crate::mqtt::packets::disconnect::DisconnectPacket;
+pub use crate::mqtt::packets::publish::PublishPacket;
 use crate::mqtt::packets::ControlPacket::{ConnAck, Connect, Disconnect, Publish};
 use crate::mqtt::packets::ProtocolVersion::Mqtt3;
 use crate::mqtt::packets::QoS::AtMostOnce;

@@ -4,7 +4,7 @@ use dotenv::dotenv;
 use log::{debug, info, trace};
 use tokio::net::{TcpListener, TcpStream};
 
-use crate::broker::Manager;
+use crate::broker::manager::Manager;
 use crate::mqtt::connection::Connection;
 use crate::mqtt::listener::MqttListener;
 use crate::mqtt::packets::ControlPacket;
