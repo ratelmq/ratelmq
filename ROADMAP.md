@@ -9,15 +9,16 @@ Please feel free to create a PR if You think that we are missing something!
 ## 0.1 - TBD
 
 1. Basic MQTT 3.1 & 3.1.1 support
-2. QoS 0 only
-3. Configuration through file and ENVs
-4. Docker image
+   1. QoS 0 only
+2. Configuration through file and ENVs
+3. Docker image
 
 ## 0.2 - TBD
 
-1. QoS support
-2. Last will
-3. Retained messages
+1. Full MQTT 3.1.1 support 
+   1. QoS
+   2. Last will
+   3. Retained messages
 4. Auth - user & password
 
 ## 0.3 - TBD
