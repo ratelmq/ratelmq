@@ -1,6 +1,7 @@
 use crate::mqtt::packets::connack::ConnAckPacket;
 use crate::mqtt::packets::connack::ConnAckReturnCode::Accepted;
 use crate::mqtt::packets::connect::ConnectPacket;
+use crate::mqtt::packets::publish::PublishPacket;
 use log::info;
 
 pub struct Manager {}
@@ -17,5 +18,9 @@ impl Manager {
             session_present: false,
             return_code: Accepted,
         }
+    }
+
+    pub fn publish(&self, publish_packet: &PublishPacket) -> Option<()> {
+        None
     }
 }

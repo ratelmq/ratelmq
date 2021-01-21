@@ -1,4 +1,5 @@
 use bytes::{Buf, BufMut, BytesMut};
+use log::trace;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, Error, ErrorKind};
 use tokio::net::TcpStream;
 
@@ -20,10 +21,6 @@ impl MqttBytesStream {
             tcp_stream,
         }
     }
-
-    pub fn tcp_stream(&self) -> &TcpStream {
-        &self.tcp_stream
-    }
 }
 
 impl MqttBytesStream {
@@ -40,10 +37,10 @@ impl MqttBytesStream {
     }
 
     pub async fn get_string(&mut self) -> Result<String, Error> {
-        println!("Parsing string size");
+        trace!("Parsing string size");
         let string_size = self.get_u16().await? as usize;
-        println!("String size: {} ({:#04x})", string_size, string_size);
-        println!("Parsing string buf");
+        trace!("String size: {} ({:#04x})", string_size, string_size);
+        trace!("Parsing string buf");
         let str_buf = self.get_bytes(string_size).await?;
 
         let str = std::str::from_utf8(str_buf.as_ref()).map_err(|e| {
@@ -89,7 +86,25 @@ impl MqttBytesStream {
 
     async fn wait_for_data(&mut self, bytes: usize) -> Result<(), Error> {
         while self.read_buffer.len() < bytes {
-            self.tcp_stream.read_buf(&mut self.read_buffer).await?;
+            let read_bytes_num = self.tcp_stream.read_buf(&mut self.read_buffer).await?;
+
+            // todo: Handle better?
+            let connection_closed = read_bytes_num == 0; // end of file
+            if connection_closed {
+                let clean_shutdown = self.read_buffer.is_empty();
+                return if clean_shutdown {
+                    Err(tokio::io::Error::new(
+                        ErrorKind::ConnectionReset,
+                        "connection reset by peer",
+                    ))
+                } else {
+                    // closed while sending
+                    Err(tokio::io::Error::new(
+                        ErrorKind::ConnectionReset,
+                        "connection interrupted, reset by peer",
+                    ))
+                };
+            }
         }
 
         Ok(())
@@ -140,7 +155,6 @@ impl MqttBytesStream {
     }
 
     pub async fn finish_packet(&mut self) -> Result<(), Error> {
-        println!("Finished packet");
         self.tcp_stream.write_buf(&mut self.write_buffer).await?;
         // self.tcp_stream.flush().await?;
         Ok(())
