@@ -1,5 +1,4 @@
 use crate::mqtt::packets::ControlPacket;
-use crate::mqtt::packets::ControlPacket::{Connect, Publish};
 use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
 use crate::mqtt::transport::packet_decoder::{decode_remaining_length, PacketDecoder};
 use crate::mqtt::transport::packet_encoder::PacketEncoder;
@@ -12,7 +11,7 @@ pub struct MqttPacketsStream {
 }
 
 impl MqttPacketsStream {
-    pub fn new(buffer_size: usize, stream: TcpStream) -> MqttPacketsStream {
+    pub fn new(_buffer_size: usize, stream: TcpStream) -> MqttPacketsStream {
         MqttPacketsStream {
             // stream
             mqtt_stream: MqttBytesStream::new(8096, 8096, stream),
@@ -22,7 +21,7 @@ impl MqttPacketsStream {
     pub async fn read_packet(&mut self) -> Result<ControlPacket, Error> {
         let first_byte = self.mqtt_stream.get_u8().await?;
         let packet_type = first_byte >> 4;
-        let mut remaining_length = decode_remaining_length(&mut self.mqtt_stream).await?;
+        let remaining_length = decode_remaining_length(&mut self.mqtt_stream).await?;
 
         let mut control_packet = ControlPacket::new(packet_type);
 

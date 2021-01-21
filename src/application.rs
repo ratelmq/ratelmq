@@ -30,7 +30,7 @@ impl Application {
     pub async fn run(&self) {
         info!("Initializing RatelMQ...");
 
-        let l = MqttListener::new("127.0.0.1:1883");
+        let _l = MqttListener::new("127.0.0.1:1883");
 
         let listener = TcpListener::bind("127.0.0.1:1883").await.unwrap();
 
@@ -70,24 +70,19 @@ async fn process(socket: TcpStream, manager: MqttManager) {
                             &pp.topic, &pp.body
                         );
 
-                        if let Some(publish_result) = {
+                        if let Some(_publish_result) = {
                             let manager = manager.lock().unwrap();
                             manager.publish(&pp)
                         } {
                             debug!("Response");
                         };
-
-                        // let publish_result = {
-                        //     let manager = manager.lock().unwrap();
-                        //     manager.publish(&pp)
-                        // };
-                        //
-                        // if publish_result.is_some() {
-                        //     debug!("Response");
-                        // };
                     }
                     ControlPacket::Disconnect(dp) => {
-                        debug!("Received DISCONNECT packet")
+                        debug!("Received DISCONNECT packet");
+                        {
+                            let manager = manager.lock().unwrap();
+                            manager.disconnect(&dp)
+                        };
                     }
                     _ => unimplemented!(),
                 }

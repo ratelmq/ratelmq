@@ -13,15 +13,15 @@ pub trait PacketDecoder {
 
     async fn parse_variable_header(
         &mut self,
-        buffer: &mut MqttBytesStream,
+        _buffer: &mut MqttBytesStream,
     ) -> Result<usize, Error> {
         Ok(0)
     }
 
     async fn parse_payload(
         &mut self,
-        buffer: &mut MqttBytesStream,
-        remaining_length: u64,
+        _buffer: &mut MqttBytesStream,
+        _remaining_length: u64,
     ) -> Result<usize, Error> {
         Ok(0)
     }
