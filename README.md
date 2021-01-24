@@ -1,6 +1,7 @@
 # RatelMQ
 
 ![CI](https://github.com/ratelmq/ratelmq/workflows/CI/badge.svg)
+![GitHub](https://img.shields.io/github/license/ratelmq/ratelmq)
 
 **RatelMQ is an efficient, reliable & scalable MQTT broker.**
 
@@ -32,4 +33,4 @@ TBD
 
 ## License
 
-TBD
+The project is licensed under the Apache License 2.0, see [LICENSE](LICENSE).
