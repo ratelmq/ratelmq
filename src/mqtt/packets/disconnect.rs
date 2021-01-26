@@ -9,7 +9,7 @@ pub struct DisconnectPacket {}
 
 #[async_trait]
 impl PacketDecoder for DisconnectPacket {
-    fn parse_fixed_header_flags(&self, _: u8) -> Result<(), Error> {
+    fn parse_fixed_header_flags(&mut self, _: u8) -> Result<(), Error> {
         Ok(())
     }
 

@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 
-use dotenv::dotenv;
 use log::{debug, info, trace};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -16,11 +15,6 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn init() {
-        dotenv().ok();
-        env_logger::init();
-    }
-
     pub fn new() -> Application {
         Application {
             manager: Arc::new(Mutex::new(Manager::new())),

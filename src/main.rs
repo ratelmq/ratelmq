@@ -1,13 +1,9 @@
-use crate::application::Application;
-
-mod application;
-mod broker;
-mod mqtt;
+use dotenv::dotenv;
 
 #[tokio::main]
 async fn main() {
-    Application::init();
+    dotenv().ok();
+    env_logger::init();
 
-    let app = Box::new(Application::new());
-    app.run().await;
+    ratelmq::run().await;
 }

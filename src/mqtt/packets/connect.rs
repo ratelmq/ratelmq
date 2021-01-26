@@ -6,6 +6,8 @@ use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
 use crate::mqtt::transport::packet_decoder::PacketDecoder;
 use log::trace;
 
+use bitflags::bitflags;
+
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct ConnectPacket {
     // header
@@ -24,9 +26,23 @@ pub struct ConnectPacket {
     pub password: Option<String>,
 }
 
+bitflags! {
+    struct ConnectFlags: u8 {
+        const RESERVED =        0b00000001;
+        const CLEAN_SESSION =   0b00000010;
+        const WILL =            0b00000100;
+        const WILL_QOS_1 =      0b00001000;
+        const WILL_QOS_2 =      0b00010000;
+        const WILL_RETAIN =     0b00100000;
+        const PASSWORD =        0b01000000;
+        const USERNAME =        0b10000000;
+        const WILL_QOS = Self::WILL_QOS_1.bits | Self::WILL_QOS_2.bits;
+    }
+}
+
 #[async_trait]
 impl PacketDecoder for ConnectPacket {
-    fn parse_fixed_header_flags(&self, _: u8) -> Result<(), Error> {
+    fn parse_fixed_header_flags(&mut self, _: u8) -> Result<(), Error> {
         Ok(())
     }
 
@@ -42,7 +58,10 @@ impl PacketDecoder for ConnectPacket {
 
         let protocol_name = buffer.get_string().await?;
         let protocol_level = buffer.get_u8().await?;
-        let connect_flags = buffer.get_u8().await?;
+        let connect_flags_byte = buffer.get_u8().await?;
+        let connect_flags = ConnectFlags::from_bits_truncate(connect_flags_byte);
+
+        self.clean_session = connect_flags.contains(ConnectFlags::CLEAN_SESSION);
 
         self.keep_alive_seconds = buffer.get_u16().await?;
 

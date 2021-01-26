@@ -5,7 +5,7 @@ use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
 
 #[async_trait]
 pub trait PacketDecoder {
-    fn parse_fixed_header_flags(&self, flags: u8) -> Result<(), Error>;
+    fn parse_fixed_header_flags(&mut self, flags: u8) -> Result<(), Error>;
 
     fn variable_header_size(&self) -> usize {
         0

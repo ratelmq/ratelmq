@@ -4,7 +4,7 @@ pub use crate::mqtt::packets::disconnect::DisconnectPacket;
 pub use crate::mqtt::packets::publish::PublishPacket;
 use crate::mqtt::packets::ControlPacket::{ConnAck, Connect, Disconnect, Publish};
 use crate::mqtt::packets::ProtocolVersion::Mqtt3;
-use crate::mqtt::packets::QoS::AtMostOnce;
+use crate::mqtt::packets::QoS::{AtLeastOnce, AtMostOnce, ExactlyOnce};
 
 pub mod connack;
 pub mod connect;
@@ -28,6 +28,18 @@ pub enum QoS {
     AtMostOnce = 0,
     AtLeastOnce = 1,
     ExactlyOnce = 2,
+}
+
+impl QoS {
+    pub fn from_bits(bits: u8) -> QoS {
+        println!("bits: {}", bits);
+        match bits {
+            0 => AtMostOnce,
+            1 => AtLeastOnce,
+            2 => ExactlyOnce,
+            _ => panic!("Invalid QoS"),
+        }
+    }
 }
 
 impl Default for QoS {
