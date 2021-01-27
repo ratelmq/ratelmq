@@ -34,6 +34,18 @@ async fn it_read_connect_min() {
 }
 
 #[tokio::test]
+async fn it_read_disconnect() {
+    const DATA: &[u8] = &[0xe0, 0x00];
+
+    let packet = read_packet(DATA).await;
+
+    match packet {
+        ControlPacket::Disconnect(_) => {}
+        _ => panic!("Invalid packet type"),
+    };
+}
+
+#[tokio::test]
 async fn it_read_publish_min() {
     const DATA: &[u8] = &[
         0x30, 0x10, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x74, 0x65, 0x73, 0x74, 0x20, 0x62,
