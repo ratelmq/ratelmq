@@ -1,7 +1,9 @@
-use ratelmq::mqtt::connection::Connection;
-use ratelmq::mqtt::packets::{ControlPacket, ProtocolVersion, QoS};
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
+
+use ratelmq::mqtt::connection::Connection;
+use ratelmq::mqtt::packets::{ControlPacket, ProtocolVersion, QoS};
+use ratelmq::mqtt::subscription::Subscription;
 
 #[tokio::test]
 async fn it_read_connect_min() {
@@ -80,6 +82,51 @@ async fn it_read_publish_full() {
             assert_eq!(publish.body, "test body");
             assert_eq!(publish.qos, QoS::ExactlyOnce);
             assert_eq!(publish.retain, true);
+        }
+        _ => panic!("Invalid packet type"),
+    };
+}
+
+#[tokio::test]
+async fn it_read_subscribe_one() {
+    const DATA: &[u8] = &[
+        0x82, 0x0a, 0x00, 0x01, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x00,
+    ];
+
+    let packet = read_packet(DATA).await;
+
+    match packet {
+        ControlPacket::Subscribe(subscribe) => {
+            assert_eq!(subscribe.packet_id, 1);
+            assert_eq!(
+                subscribe.subscriptions,
+                vec![Subscription::new("a/b/c".to_string(), QoS::AtMostOnce)]
+            );
+        }
+        _ => panic!("Invalid packet type"),
+    };
+}
+
+#[tokio::test]
+async fn it_read_subscribe_many() {
+    const DATA: &[u8] = &[
+        0x82, 0x1a, 0x00, 0x01, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x00, 0x00, 0x05, 0x7a,
+        0x2f, 0x78, 0x2f, 0x63, 0x01, 0x00, 0x05, 0x71, 0x2f, 0x77, 0x2f, 0x65, 0x02,
+    ];
+
+    let packet = read_packet(DATA).await;
+
+    match packet {
+        ControlPacket::Subscribe(subscribe) => {
+            assert_eq!(subscribe.packet_id, 1);
+            assert_eq!(
+                subscribe.subscriptions,
+                vec![
+                    Subscription::new("a/b/c".to_string(), QoS::AtMostOnce),
+                    Subscription::new("z/x/c".to_string(), QoS::AtLeastOnce),
+                    Subscription::new("q/w/e".to_string(), QoS::ExactlyOnce)
+                ]
+            );
         }
         _ => panic!("Invalid packet type"),
     };

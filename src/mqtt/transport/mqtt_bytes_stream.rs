@@ -53,11 +53,6 @@ impl MqttBytesStream {
             )
         })?;
 
-        // println!(
-        //     "\tparsed string: {:#?}, of length: {:#?}",
-        //     str, &string_size
-        // );
-
         Ok(String::from(str))
     }
 

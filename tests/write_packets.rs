@@ -1,7 +1,7 @@
 use bytes::{Bytes, BytesMut};
 use ratelmq::mqtt::connection::Connection;
-use ratelmq::mqtt::transport::packet_encoder::PacketEncoder;
 use ratelmq::mqtt::packets::{ConnAckPacket, ControlPacket, ProtocolVersion, QoS};
+use ratelmq::mqtt::transport::packet_encoder::PacketEncoder;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 

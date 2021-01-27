@@ -71,6 +71,12 @@ async fn process(socket: TcpStream, manager: MqttManager) {
                             debug!("Response");
                         };
                     }
+                    ControlPacket::Subscribe(sp) => {
+                        debug!(
+                            "Received SUBSCRIBE packet: packet_id={} subscriptions={:?}",
+                            &sp.packet_id, &sp.subscriptions
+                        );
+                    }
                     ControlPacket::Disconnect(dp) => {
                         debug!("Received DISCONNECT packet");
                         {
