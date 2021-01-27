@@ -132,6 +132,20 @@ async fn it_read_subscribe_many() {
     };
 }
 
+#[tokio::test]
+async fn it_read_ping_req() {
+    const DATA: &[u8] = &[0xc0, 0x00];
+
+    let packet = read_packet(DATA).await;
+
+    match packet {
+        ControlPacket::PingReq(_) => {
+            // nothing to assert
+        }
+        _ => panic!("Invalid packet type"),
+    };
+}
+
 async fn read_packet(data: &[u8]) -> ControlPacket {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
 

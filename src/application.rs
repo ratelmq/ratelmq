@@ -6,6 +6,8 @@ use tokio::net::{TcpListener, TcpStream};
 use crate::broker::manager::Manager;
 use crate::mqtt::connection::Connection;
 use crate::mqtt::listener::MqttListener;
+use crate::mqtt::packets::ping_resp::PingRespPacket;
+use crate::mqtt::packets::suback::{SubAckPacket, SubAckReturnCode};
 use crate::mqtt::packets::ControlPacket;
 
 type MqttManager = Arc<Mutex<Manager>>;
@@ -76,6 +78,20 @@ async fn process(socket: TcpStream, manager: MqttManager) {
                             "Received SUBSCRIBE packet: packet_id={} subscriptions={:?}",
                             &sp.packet_id, &sp.subscriptions
                         );
+
+                        let sub_ack = SubAckPacket::new(
+                            sp.packet_id,
+                            sp.subscriptions
+                                .iter()
+                                .map(|_sub| SubAckReturnCode::Failure)
+                                .collect(),
+                        );
+                        connection.write_packet(&sub_ack).await.unwrap();
+                    }
+                    ControlPacket::PingReq(_) => {
+                        debug!("Received PINGREQ packet");
+                        let resp = PingRespPacket::default();
+                        connection.write_packet(&resp).await.unwrap();
                     }
                     ControlPacket::Disconnect(dp) => {
                         debug!("Received DISCONNECT packet");
