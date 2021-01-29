@@ -34,6 +34,23 @@ pub mod subscribe;
 pub mod unsuback;
 pub mod unsubscribe;
 
+// const PACKET_TYPE_RESERVED0: u8 = 0;
+const PACKET_TYPE_CONNECT: u8 = 1;
+const PACKET_TYPE_CONN_ACK: u8 = 2;
+const PACKET_TYPE_PUBLISH: u8 = 3;
+const PACKET_TYPE_PUB_ACK: u8 = 4;
+const PACKET_TYPE_PUB_REC: u8 = 5;
+const PACKET_TYPE_PUB_REL: u8 = 6;
+const PACKET_TYPE_PUB_COMP: u8 = 7;
+const PACKET_TYPE_SUBSCRIBE: u8 = 8;
+const PACKET_TYPE_SUB_ACK: u8 = 9;
+const PACKET_TYPE_UNSUBSCRIBE: u8 = 10;
+const PACKET_TYPE_UNSUB_ACK: u8 = 11;
+const PACKET_TYPE_PING_REQ: u8 = 12;
+const PACKET_TYPE_PING_RESP: u8 = 13;
+const PACKET_TYPE_DISCONNECT: u8 = 14;
+// const PACKET_TYPE_RESERVED15: u8 = 15;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProtocolVersion {
     Mqtt3,
@@ -91,20 +108,20 @@ pub enum ControlPacket {
 impl ControlPacket {
     pub fn new(packet_id: u8) -> ControlPacket {
         match packet_id {
-            1 => Connect(ConnectPacket::default()),
-            2 => ConnAck(ConnAckPacket::default()),
-            3 => Publish(PublishPacket::default()),
-            4 => PubAck(PubAckPacket::default()),
-            5 => PubRec(PubRecPacket::default()),
-            6 => PubRel(PubRelPacket::default()),
-            7 => PubComp(PubCompPacket::default()),
-            8 => Subscribe(SubscribePacket::default()),
-            9 => SubAck(SubAckPacket::default()),
-            10 => Unsubscribe(UnsubscribePacket::default()),
-            11 => UnsubAck(UnSubAckPacket::default()),
-            12 => PingReq(PingReqPacket::default()),
-            13 => PingResp(PingRespPacket::default()),
-            14 => Disconnect(DisconnectPacket::default()),
+            PACKET_TYPE_CONNECT => Connect(ConnectPacket::default()),
+            PACKET_TYPE_CONN_ACK => ConnAck(ConnAckPacket::default()),
+            PACKET_TYPE_PUBLISH => Publish(PublishPacket::default()),
+            PACKET_TYPE_PUB_ACK => PubAck(PubAckPacket::default()),
+            PACKET_TYPE_PUB_REC => PubRec(PubRecPacket::default()),
+            PACKET_TYPE_PUB_REL => PubRel(PubRelPacket::default()),
+            PACKET_TYPE_PUB_COMP => PubComp(PubCompPacket::default()),
+            PACKET_TYPE_SUBSCRIBE => Subscribe(SubscribePacket::default()),
+            PACKET_TYPE_SUB_ACK => SubAck(SubAckPacket::default()),
+            PACKET_TYPE_UNSUBSCRIBE => Unsubscribe(UnsubscribePacket::default()),
+            PACKET_TYPE_UNSUB_ACK => UnsubAck(UnSubAckPacket::default()),
+            PACKET_TYPE_PING_REQ => PingReq(PingReqPacket::default()),
+            PACKET_TYPE_PING_RESP => PingResp(PingRespPacket::default()),
+            PACKET_TYPE_DISCONNECT => Disconnect(DisconnectPacket::default()),
             _ => panic!("Invalid packet id!"),
         }
     }
