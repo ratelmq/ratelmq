@@ -3,13 +3,14 @@ pub use crate::mqtt::packets::connect::ConnectPacket;
 pub use crate::mqtt::packets::disconnect::DisconnectPacket;
 use crate::mqtt::packets::ping_req::PingReqPacket;
 use crate::mqtt::packets::ping_resp::PingRespPacket;
+use crate::mqtt::packets::puback::PubAckPacket;
 pub use crate::mqtt::packets::publish::PublishPacket;
 use crate::mqtt::packets::suback::SubAckPacket;
 use crate::mqtt::packets::subscribe::SubscribePacket;
 use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
 use crate::mqtt::packets::ControlPacket::{
-    ConnAck, Connect, Disconnect, PingReq, PingResp, Publish, SubAck, Subscribe, UnsubAck,
+    ConnAck, Connect, Disconnect, PingReq, PingResp, PubAck, Publish, SubAck, Subscribe, UnsubAck,
     Unsubscribe,
 };
 use crate::mqtt::packets::ProtocolVersion::Mqtt3;
@@ -20,6 +21,7 @@ pub mod connect;
 pub mod disconnect;
 pub mod ping_req;
 pub mod ping_resp;
+pub mod puback;
 pub mod publish;
 pub mod suback;
 pub mod subscribe;
@@ -67,6 +69,7 @@ pub enum ControlPacket {
     Connect(ConnectPacket),
     ConnAck(ConnAckPacket),
     Publish(PublishPacket),
+    PubAck(PubAckPacket),
     Subscribe(SubscribePacket),
     SubAck(SubAckPacket),
     Unsubscribe(UnsubscribePacket),
@@ -82,7 +85,7 @@ impl ControlPacket {
             1 => Connect(ConnectPacket::default()),
             2 => ConnAck(ConnAckPacket::default()),
             3 => Publish(PublishPacket::default()),
-            // 4 => PubAck
+            4 => PubAck(PubAckPacket::default()),
             // 5 => PubRec
             // 6 => PubRel
             // 7 => PubComp

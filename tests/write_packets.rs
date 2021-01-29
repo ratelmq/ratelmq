@@ -1,6 +1,7 @@
 use bytes::BytesMut;
 use ratelmq::mqtt::connection::Connection;
 use ratelmq::mqtt::packets::ping_resp::PingRespPacket;
+use ratelmq::mqtt::packets::puback::PubAckPacket;
 use ratelmq::mqtt::packets::suback::SubAckPacket;
 use ratelmq::mqtt::packets::unsuback::UnSubAckPacket;
 use ratelmq::mqtt::packets::ConnAckPacket;
@@ -14,6 +15,16 @@ async fn it_write_connack() {
 
     let data = write_packet(&connack).await;
     assert_bytes(data, vec![0x20, 0x02, 0x00, 0x00])
+}
+
+#[tokio::test]
+async fn it_write_puback() {
+    let mut puback = PubAckPacket::default();
+    puback.packet_id = 0x02;
+
+    let data = write_packet(&puback).await;
+
+    assert_bytes(data, vec![0x40, 0x02, 0x00, 0x02])
 }
 
 #[tokio::test]
