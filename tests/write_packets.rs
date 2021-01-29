@@ -5,6 +5,7 @@ use tokio::net::{TcpListener, TcpStream};
 use ratelmq::mqtt::connection::Connection;
 use ratelmq::mqtt::packets::ping_resp::PingRespPacket;
 use ratelmq::mqtt::packets::puback::PubAckPacket;
+use ratelmq::mqtt::packets::pubcomp::PubCompPacket;
 use ratelmq::mqtt::packets::pubrec::PubRecPacket;
 use ratelmq::mqtt::packets::pubrel::PubRelPacket;
 use ratelmq::mqtt::packets::suback::SubAckPacket;
@@ -48,6 +49,16 @@ async fn it_write_pubrel() {
     let data = write_packet(&pubrel).await;
 
     assert_bytes(data, vec![0x60, 0x02, 0x00, 0x67])
+}
+
+#[tokio::test]
+async fn it_write_pubcomp() {
+    let mut pubcomp = PubCompPacket::default();
+    pubcomp.packet_id = 0xcd12;
+
+    let data = write_packet(&pubcomp).await;
+
+    assert_bytes(data, vec![0x70, 0x02, 0xcd, 0x12])
 }
 
 #[tokio::test]
