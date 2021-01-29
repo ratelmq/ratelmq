@@ -1,14 +1,16 @@
 use bytes::BytesMut;
+use tokio::io::AsyncReadExt;
+use tokio::net::{TcpListener, TcpStream};
+
 use ratelmq::mqtt::connection::Connection;
 use ratelmq::mqtt::packets::ping_resp::PingRespPacket;
 use ratelmq::mqtt::packets::puback::PubAckPacket;
 use ratelmq::mqtt::packets::pubrec::PubRecPacket;
+use ratelmq::mqtt::packets::pubrel::PubRelPacket;
 use ratelmq::mqtt::packets::suback::SubAckPacket;
 use ratelmq::mqtt::packets::unsuback::UnSubAckPacket;
 use ratelmq::mqtt::packets::ConnAckPacket;
 use ratelmq::mqtt::transport::packet_encoder::PacketEncoder;
-use tokio::io::AsyncReadExt;
-use tokio::net::{TcpListener, TcpStream};
 
 #[tokio::test]
 async fn it_write_connack() {
@@ -36,6 +38,16 @@ async fn it_write_pubrec() {
     let data = write_packet(&pubrec).await;
 
     assert_bytes(data, vec![0x50, 0x02, 0x12, 0x34])
+}
+
+#[tokio::test]
+async fn it_write_pubrel() {
+    let mut pubrel = PubRelPacket::default();
+    pubrel.packet_id = 0x67;
+
+    let data = write_packet(&pubrel).await;
+
+    assert_bytes(data, vec![0x60, 0x02, 0x00, 0x67])
 }
 
 #[tokio::test]
@@ -87,6 +99,11 @@ where
     buffer
 }
 
-fn assert_bytes(left: BytesMut, right: Vec<u8>) {
-    assert_eq!(left, BytesMut::from(right.as_slice()));
+fn assert_bytes(actual: BytesMut, expected: Vec<u8>) {
+    let actual_vec = actual.to_vec();
+    assert_eq!(
+        actual_vec, expected,
+        "Actual: {:02X?}\nExpected: {:02X?}",
+        actual_vec, expected
+    );
 }
