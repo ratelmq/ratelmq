@@ -2,11 +2,15 @@ pub use crate::mqtt::packets::connack::ConnAckPacket;
 pub use crate::mqtt::packets::connect::ConnectPacket;
 pub use crate::mqtt::packets::disconnect::DisconnectPacket;
 use crate::mqtt::packets::ping_req::PingReqPacket;
+use crate::mqtt::packets::ping_resp::PingRespPacket;
 pub use crate::mqtt::packets::publish::PublishPacket;
 use crate::mqtt::packets::suback::SubAckPacket;
 use crate::mqtt::packets::subscribe::SubscribePacket;
+use crate::mqtt::packets::unsuback::UnSubAckPacket;
+use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
 use crate::mqtt::packets::ControlPacket::{
-    ConnAck, Connect, Disconnect, PingReq, Publish, SubAck, Subscribe,
+    ConnAck, Connect, Disconnect, PingReq, PingResp, Publish, SubAck, Subscribe, UnsubAck,
+    Unsubscribe,
 };
 use crate::mqtt::packets::ProtocolVersion::Mqtt3;
 use crate::mqtt::packets::QoS::{AtLeastOnce, AtMostOnce, ExactlyOnce};
@@ -19,6 +23,8 @@ pub mod ping_resp;
 pub mod publish;
 pub mod suback;
 pub mod subscribe;
+pub mod unsuback;
+pub mod unsubscribe;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProtocolVersion {
@@ -63,7 +69,10 @@ pub enum ControlPacket {
     Publish(PublishPacket),
     Subscribe(SubscribePacket),
     SubAck(SubAckPacket),
+    Unsubscribe(UnsubscribePacket),
+    UnsubAck(UnSubAckPacket),
     PingReq(PingReqPacket),
+    PingResp(PingRespPacket),
     Disconnect(DisconnectPacket),
 }
 
@@ -79,10 +88,10 @@ impl ControlPacket {
             // 7 => PubComp
             8 => Subscribe(SubscribePacket::default()),
             9 => SubAck(SubAckPacket::default()),
-            // 10 => UnSubscribe
-            // 11 => UnSubAck
+            10 => Unsubscribe(UnsubscribePacket::default()),
+            11 => UnsubAck(UnSubAckPacket::default()),
             12 => PingReq(PingReqPacket::default()),
-            // 13 => PingResp
+            13 => PingResp(PingRespPacket::default()),
             14 => Disconnect(DisconnectPacket::default()),
             _ => panic!("Invalid packet id!"),
         }

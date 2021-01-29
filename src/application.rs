@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use tokio::net::{TcpListener, TcpStream};
 
 use crate::broker::manager::Manager;
@@ -8,6 +8,7 @@ use crate::mqtt::connection::Connection;
 use crate::mqtt::listener::MqttListener;
 use crate::mqtt::packets::ping_resp::PingRespPacket;
 use crate::mqtt::packets::suback::{SubAckPacket, SubAckReturnCode};
+use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::ControlPacket;
 
 type MqttManager = Arc<Mutex<Manager>>;
@@ -88,6 +89,15 @@ async fn process(socket: TcpStream, manager: MqttManager) {
                         );
                         connection.write_packet(&sub_ack).await.unwrap();
                     }
+                    ControlPacket::Unsubscribe(up) => {
+                        debug!(
+                            "Received UNSUBSCRIBE packet: packet_id={} topics={:?}",
+                            &up.packet_id, &up.topics
+                        );
+
+                        let unsub_ack = UnSubAckPacket::new(up.packet_id);
+                        connection.write_packet(&unsub_ack).await.unwrap();
+                    }
                     ControlPacket::PingReq(_) => {
                         debug!("Received PINGREQ packet");
                         let resp = PingRespPacket::default();
@@ -108,7 +118,7 @@ async fn process(socket: TcpStream, manager: MqttManager) {
                 // }
             }
             Err(error) => {
-                eprintln!("Received error: {:#?}", error);
+                error!("Received error: {:#?}", error);
                 break;
             }
         }

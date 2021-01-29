@@ -151,7 +151,7 @@ impl MqttBytesStream {
 
     pub async fn finish_packet(&mut self) -> Result<(), Error> {
         self.tcp_stream.write_buf(&mut self.write_buffer).await?;
-        self.tcp_stream.flush().await?;
+        // self.tcp_stream.flush().await?;
         Ok(())
     }
 

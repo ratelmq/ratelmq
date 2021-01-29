@@ -1,6 +1,8 @@
 use bytes::BytesMut;
 use ratelmq::mqtt::connection::Connection;
 use ratelmq::mqtt::packets::ping_resp::PingRespPacket;
+use ratelmq::mqtt::packets::suback::SubAckPacket;
+use ratelmq::mqtt::packets::unsuback::UnSubAckPacket;
 use ratelmq::mqtt::packets::ConnAckPacket;
 use ratelmq::mqtt::transport::packet_encoder::PacketEncoder;
 use tokio::io::AsyncReadExt;
@@ -11,7 +13,27 @@ async fn it_write_connack() {
     let connack = ConnAckPacket::default();
 
     let data = write_packet(&connack).await;
-    assert_eq!(data, vec![0x20, 0x02, 0x00, 0x00])
+    assert_bytes(data, vec![0x20, 0x02, 0x00, 0x00])
+}
+
+#[tokio::test]
+async fn it_write_suback() {
+    let mut suback = SubAckPacket::default();
+    suback.packet_id = 0xa3c9;
+
+    let data = write_packet(&suback).await;
+
+    assert_bytes(data, vec![0x90, 0x02, 0xa3, 0xc9])
+}
+
+#[tokio::test]
+async fn it_write_unsuback() {
+    let mut unsuback = UnSubAckPacket::default();
+    unsuback.packet_id = 6;
+
+    let data = write_packet(&unsuback).await;
+
+    assert_bytes(data, vec![0xb0, 0x02, 0x00, 0x06])
 }
 
 #[tokio::test]
@@ -20,9 +42,7 @@ async fn it_write_ping_resp() {
 
     let data = write_packet(&ping_resp).await;
 
-    println!("data: {:?}", &data);
-
-    assert_eq!(data, vec![0xd0, 0x00,])
+    assert_bytes(data, vec![0xd0, 0x00])
 }
 
 async fn write_packet<T>(packet: &T) -> BytesMut
@@ -43,4 +63,8 @@ where
     let mut buffer = BytesMut::with_capacity(1024);
     client.read_buf(&mut buffer).await.unwrap();
     buffer
+}
+
+fn assert_bytes(left: BytesMut, right: Vec<u8>) {
+    assert_eq!(left, BytesMut::from(right.as_slice()));
 }

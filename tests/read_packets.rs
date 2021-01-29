@@ -133,6 +133,48 @@ async fn it_read_subscribe_many() {
 }
 
 #[tokio::test]
+async fn it_read_unsubscribe_one() {
+    const DATA: &[u8] = &[
+        0xa2, 0x09, 0x00, 0x02, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63,
+    ];
+
+    let packet = read_packet(DATA).await;
+
+    match packet {
+        ControlPacket::Unsubscribe(unsubscribe) => {
+            assert_eq!(unsubscribe.packet_id, 2);
+            assert_eq!(unsubscribe.topics, vec!["a/b/c".to_string()]);
+        }
+        _ => panic!("Invalid packet type"),
+    };
+}
+
+#[tokio::test]
+async fn it_read_unsubscribe_many() {
+    const DATA: &[u8] = &[
+        0xa2, 0x17, 0x00, 0x02, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x00, 0x05, 0x7a, 0x2f,
+        0x78, 0x2f, 0x63, 0x00, 0x05, 0x71, 0x2f, 0x77, 0x2f, 0x65,
+    ];
+
+    let packet = read_packet(DATA).await;
+
+    match packet {
+        ControlPacket::Unsubscribe(unsubscribe) => {
+            assert_eq!(unsubscribe.packet_id, 2);
+            assert_eq!(
+                unsubscribe.topics,
+                vec![
+                    "a/b/c".to_string(),
+                    "z/x/c".to_string(),
+                    "q/w/e".to_string()
+                ]
+            );
+        }
+        _ => panic!("Invalid packet type"),
+    };
+}
+
+#[tokio::test]
 async fn it_read_ping_req() {
     const DATA: &[u8] = &[0xc0, 0x00];
 
