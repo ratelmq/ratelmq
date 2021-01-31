@@ -63,7 +63,7 @@ impl Default for ProtocolVersion {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
 pub enum QoS {
     AtMostOnce = 0,
     AtLeastOnce = 1,

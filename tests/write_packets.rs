@@ -10,7 +10,7 @@ use ratelmq::mqtt::packets::pubrec::PubRecPacket;
 use ratelmq::mqtt::packets::pubrel::PubRelPacket;
 use ratelmq::mqtt::packets::suback::SubAckPacket;
 use ratelmq::mqtt::packets::unsuback::UnSubAckPacket;
-use ratelmq::mqtt::packets::ConnAckPacket;
+use ratelmq::mqtt::packets::{ConnAckPacket, PublishPacket, QoS};
 use ratelmq::mqtt::transport::packet_encoder::PacketEncoder;
 
 #[tokio::test]
@@ -19,6 +19,44 @@ async fn it_write_connack() {
 
     let data = write_packet(&connack).await;
     assert_bytes(data, vec![0x20, 0x02, 0x00, 0x00])
+}
+
+#[tokio::test]
+async fn it_write_publish_qos_0() {
+    const EXPECTED_DATA: &[u8] = &[
+        0x30, 0x10, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x74, 0x65, 0x73, 0x74, 0x20, 0x62,
+        0x6f, 0x64, 0x79,
+    ];
+
+    let mut publish = PublishPacket::default();
+    publish.qos = QoS::AtMostOnce;
+    publish.dup = false;
+    publish.topic = "a/b/c".to_string();
+    publish.body = BytesMut::from("test body");
+
+    let data = write_packet(&publish).await;
+
+    assert_bytes(data, EXPECTED_DATA.to_vec())
+}
+
+#[tokio::test]
+async fn it_write_publish_qos_greater_than_0() {
+    const EXPECTED_DATA: &[u8] = &[
+        0x3d, 0x12, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x12, 0x23, 0x74, 0x65, 0x73, 0x74,
+        0x20, 0x62, 0x6f, 0x64, 0x79,
+    ];
+
+    let mut publish = PublishPacket::default();
+    publish.dup = true;
+    publish.qos = QoS::ExactlyOnce;
+    publish.retain = true;
+    publish.packet_id = Some(0x1223);
+    publish.topic = "a/b/c".to_string();
+    publish.body = BytesMut::from("test body");
+
+    let data = write_packet(&publish).await;
+
+    assert_bytes(data, EXPECTED_DATA.to_vec())
 }
 
 #[tokio::test]

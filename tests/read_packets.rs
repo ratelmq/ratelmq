@@ -48,7 +48,7 @@ async fn it_read_disconnect() {
 }
 
 #[tokio::test]
-async fn it_read_publish_min() {
+async fn it_read_publish_qos_0() {
     const DATA: &[u8] = &[
         0x30, 0x10, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x74, 0x65, 0x73, 0x74, 0x20, 0x62,
         0x6f, 0x64, 0x79,
@@ -58,30 +58,34 @@ async fn it_read_publish_min() {
 
     match packet {
         ControlPacket::Publish(publish) => {
-            assert_eq!(publish.topic, "a/b/c");
-            assert_eq!(publish.body, "test body");
+            assert_eq!(publish.dup, false);
             assert_eq!(publish.qos, QoS::AtMostOnce);
             assert_eq!(publish.retain, false);
+            assert_eq!(publish.packet_id, None);
+            assert_eq!(publish.topic, "a/b/c");
+            assert_eq!(publish.body, "test body");
         }
         _ => panic!("Invalid packet type"),
     };
 }
 
 #[tokio::test]
-async fn it_read_publish_full() {
+async fn it_read_publish_qos_greater_than_0() {
     const DATA: &[u8] = &[
-        0x3d, 0x10, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x74, 0x65, 0x73, 0x74, 0x20, 0x62,
-        0x6f, 0x64, 0x79,
+        0x3d, 0x12, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x12, 0x23, 0x74, 0x65, 0x73, 0x74,
+        0x20, 0x62, 0x6f, 0x64, 0x79,
     ];
 
     let packet = read_packet(DATA).await;
 
     match packet {
         ControlPacket::Publish(publish) => {
-            assert_eq!(publish.topic, "a/b/c");
-            assert_eq!(publish.body, "test body");
-            assert_eq!(publish.qos, QoS::ExactlyOnce);
+            assert_eq!(publish.dup, true);
             assert_eq!(publish.retain, true);
+            assert_eq!(publish.qos, QoS::ExactlyOnce);
+            assert_eq!(publish.topic, "a/b/c");
+            assert_eq!(publish.packet_id, Some(0x1223));
+            assert_eq!(publish.body, "test body");
         }
         _ => panic!("Invalid packet type"),
     };
