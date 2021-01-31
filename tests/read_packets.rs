@@ -134,6 +134,20 @@ async fn it_read_pub_rel() {
 }
 
 #[tokio::test]
+async fn it_read_pub_comp() {
+    const DATA: &[u8] = &[0x70, 0x02, 0xcd, 0x12];
+
+    let packet = read_packet(DATA).await;
+
+    match packet {
+        ControlPacket::PubComp(pub_comp) => {
+            assert_eq!(pub_comp.packet_id, 0xcd12);
+        }
+        _ => panic!("Invalid packet type"),
+    };
+}
+
+#[tokio::test]
 async fn it_read_subscribe_one() {
     const DATA: &[u8] = &[
         0x82, 0x0a, 0x00, 0x01, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x00,

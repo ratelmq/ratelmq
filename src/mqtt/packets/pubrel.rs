@@ -3,8 +3,8 @@ use tokio::io::{Error, ErrorKind};
 
 use crate::mqtt::packets::PACKET_TYPE_PUB_REL;
 use crate::mqtt::transport::mqtt_bytes_stream::MqttBytesStream;
-use crate::mqtt::transport::packet_encoder::{encode_remaining_length, PacketEncoder};
 use crate::mqtt::transport::packet_decoder::PacketDecoder;
+use crate::mqtt::transport::packet_encoder::{encode_remaining_length, PacketEncoder};
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct PubRelPacket {
