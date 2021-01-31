@@ -86,7 +86,7 @@ async fn it_write_pubrel() {
 
     let data = write_packet(&pubrel).await;
 
-    assert_bytes(data, vec![0x60, 0x02, 0x00, 0x67])
+    assert_bytes(data, vec![0x62, 0x02, 0x00, 0x67])
 }
 
 #[tokio::test]
