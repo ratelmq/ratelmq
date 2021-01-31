@@ -92,6 +92,20 @@ async fn it_read_publish_qos_greater_than_0() {
 }
 
 #[tokio::test]
+async fn it_read_pub_ack() {
+    const DATA: &[u8] = &[0x40, 0x02, 0x00, 0x02];
+
+    let packet = read_packet(DATA).await;
+
+    match packet {
+        ControlPacket::PubAck(pub_ack) => {
+            assert_eq!(pub_ack.packet_id, 0x02);
+        }
+        _ => panic!("Invalid packet type"),
+    };
+}
+
+#[tokio::test]
 async fn it_read_subscribe_one() {
     const DATA: &[u8] = &[
         0x82, 0x0a, 0x00, 0x01, 0x00, 0x05, 0x61, 0x2f, 0x62, 0x2f, 0x63, 0x00,

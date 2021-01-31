@@ -58,7 +58,6 @@ impl PacketDecoder for PublishPacket {
         self.topic = buffer.get_string().await?;
 
         if self.qos > QoS::AtMostOnce {
-            println!("reading packet id");
             self.packet_id = Some(buffer.get_u16().await?);
         }
 

@@ -28,6 +28,7 @@ impl MqttPacketsStream {
         match &mut control_packet {
             ControlPacket::Connect(cp) => self.parse(cp, first_byte, remaining_length).await?,
             ControlPacket::Publish(cp) => self.parse(cp, first_byte, remaining_length).await?,
+            ControlPacket::PubAck(cp) => self.parse(cp, first_byte, remaining_length).await?,
             ControlPacket::Subscribe(cp) => self.parse(cp, first_byte, remaining_length).await?,
             ControlPacket::PingReq(pp) => self.parse(pp, first_byte, remaining_length).await?,
             ControlPacket::Unsubscribe(up) => self.parse(up, first_byte, remaining_length).await?,
