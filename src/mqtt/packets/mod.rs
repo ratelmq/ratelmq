@@ -1,8 +1,6 @@
 pub use crate::mqtt::packets::connack::ConnAckPacket;
 pub use crate::mqtt::packets::connect::ConnectPacket;
 pub use crate::mqtt::packets::disconnect::DisconnectPacket;
-use crate::mqtt::packets::ping_req::PingReqPacket;
-use crate::mqtt::packets::ping_resp::PingRespPacket;
 use crate::mqtt::packets::puback::PubAckPacket;
 use crate::mqtt::packets::pubcomp::PubCompPacket;
 pub use crate::mqtt::packets::publish::PublishPacket;
@@ -18,6 +16,8 @@ use crate::mqtt::packets::ControlPacket::{
 };
 use crate::mqtt::packets::ProtocolVersion::Mqtt3;
 use crate::mqtt::packets::QoS::{AtLeastOnce, AtMostOnce, ExactlyOnce};
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
 pub mod connack;
 pub mod connect;
@@ -35,20 +35,20 @@ pub mod unsuback;
 pub mod unsubscribe;
 
 // const PACKET_TYPE_RESERVED0: u8 = 0;
-const PACKET_TYPE_CONNECT: u8 = 1;
-const PACKET_TYPE_CONN_ACK: u8 = 2;
-const PACKET_TYPE_PUBLISH: u8 = 3;
-const PACKET_TYPE_PUB_ACK: u8 = 4;
-const PACKET_TYPE_PUB_REC: u8 = 5;
-const PACKET_TYPE_PUB_REL: u8 = 6;
-const PACKET_TYPE_PUB_COMP: u8 = 7;
-const PACKET_TYPE_SUBSCRIBE: u8 = 8;
-const PACKET_TYPE_SUB_ACK: u8 = 9;
-const PACKET_TYPE_UNSUBSCRIBE: u8 = 10;
-const PACKET_TYPE_UNSUB_ACK: u8 = 11;
-const PACKET_TYPE_PING_REQ: u8 = 12;
-const PACKET_TYPE_PING_RESP: u8 = 13;
-const PACKET_TYPE_DISCONNECT: u8 = 14;
+pub const PACKET_TYPE_CONNECT: u8 = 1;
+pub const PACKET_TYPE_CONN_ACK: u8 = 2;
+pub const PACKET_TYPE_PUBLISH: u8 = 3;
+pub const PACKET_TYPE_PUB_ACK: u8 = 4;
+pub const PACKET_TYPE_PUB_REC: u8 = 5;
+pub const PACKET_TYPE_PUB_REL: u8 = 6;
+pub const PACKET_TYPE_PUB_COMP: u8 = 7;
+pub const PACKET_TYPE_SUBSCRIBE: u8 = 8;
+pub const PACKET_TYPE_SUB_ACK: u8 = 9;
+pub const PACKET_TYPE_UNSUBSCRIBE: u8 = 10;
+pub const PACKET_TYPE_UNSUB_ACK: u8 = 11;
+pub const PACKET_TYPE_PING_REQ: u8 = 12;
+pub const PACKET_TYPE_PING_RESP: u8 = 13;
+pub const PACKET_TYPE_DISCONNECT: u8 = 14;
 // const PACKET_TYPE_RESERVED15: u8 = 15;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -68,6 +68,16 @@ pub enum QoS {
     AtMostOnce = 0,
     AtLeastOnce = 1,
     ExactlyOnce = 2,
+}
+
+impl Display for QoS {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match *self {
+            AtMostOnce => write!(f, "0 (at most once)"),
+            AtLeastOnce => write!(f, "1 (at least once)"),
+            ExactlyOnce => write!(f, "2 (exactly once)"),
+        }
+    }
 }
 
 impl QoS {
@@ -100,9 +110,30 @@ pub enum ControlPacket {
     SubAck(SubAckPacket),
     Unsubscribe(UnsubscribePacket),
     UnsubAck(UnSubAckPacket),
-    PingReq(PingReqPacket),
-    PingResp(PingRespPacket),
+    PingReq,
+    PingResp,
     Disconnect(DisconnectPacket),
+}
+
+impl Display for ControlPacket {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match *self {
+            Connect(_) => write!(f, "CONNECT"),
+            ConnAck(_) => write!(f, "CONNACK"),
+            Publish(_) => write!(f, "PUBLISH"),
+            PubAck(_) => write!(f, "PUBACK"),
+            PubRec(_) => write!(f, "PUBREC"),
+            PubRel(_) => write!(f, "PUBREL"),
+            PubComp(_) => write!(f, "PUBCOMP"),
+            Subscribe(_) => write!(f, "SUBSCRIBE"),
+            SubAck(_) => write!(f, "SUBACK"),
+            Unsubscribe(_) => write!(f, "UNSUBSCRIBE"),
+            UnsubAck(_) => write!(f, "UNSUBACK"),
+            PingReq => write!(f, "PINGREQ"),
+            PingResp => write!(f, "PINGRESP"),
+            Disconnect(_) => write!(f, "DISCONNECT"),
+        }
+    }
 }
 
 impl ControlPacket {
@@ -119,8 +150,8 @@ impl ControlPacket {
             PACKET_TYPE_SUB_ACK => SubAck(SubAckPacket::default()),
             PACKET_TYPE_UNSUBSCRIBE => Unsubscribe(UnsubscribePacket::default()),
             PACKET_TYPE_UNSUB_ACK => UnsubAck(UnSubAckPacket::default()),
-            PACKET_TYPE_PING_REQ => PingReq(PingReqPacket::default()),
-            PACKET_TYPE_PING_RESP => PingResp(PingRespPacket::default()),
+            PACKET_TYPE_PING_REQ => PingReq,
+            PACKET_TYPE_PING_RESP => PingResp,
             PACKET_TYPE_DISCONNECT => Disconnect(DisconnectPacket::default()),
             _ => panic!("Invalid packet id!"),
         }

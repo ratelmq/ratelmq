@@ -2,22 +2,21 @@ use bytes::BytesMut;
 use tokio::io::AsyncReadExt;
 use tokio::net::{TcpListener, TcpStream};
 
-use ratelmq::mqtt::connection::Connection;
-use ratelmq::mqtt::packets::ping_resp::PingRespPacket;
 use ratelmq::mqtt::packets::puback::PubAckPacket;
 use ratelmq::mqtt::packets::pubcomp::PubCompPacket;
 use ratelmq::mqtt::packets::pubrec::PubRecPacket;
 use ratelmq::mqtt::packets::pubrel::PubRelPacket;
-use ratelmq::mqtt::packets::suback::SubAckPacket;
+use ratelmq::mqtt::packets::suback::{SubAckPacket, SubAckReturnCode};
 use ratelmq::mqtt::packets::unsuback::UnSubAckPacket;
-use ratelmq::mqtt::packets::{ConnAckPacket, PublishPacket, QoS};
-use ratelmq::mqtt::transport::packet_encoder::PacketEncoder;
+use ratelmq::mqtt::packets::{ConnAckPacket, ControlPacket, PublishPacket, QoS};
+use ratelmq::mqtt::transport::mqtt_bytes_stream::MqttBytesWriteStream;
+use ratelmq::mqtt::transport::packet_encoder;
 
 #[tokio::test]
-async fn it_write_connack() {
-    let connack = ConnAckPacket::default();
+async fn it_write_conn_ack() {
+    let conn_ack = ConnAckPacket::default();
 
-    let data = write_packet(&connack).await;
+    let data = write_packet(ControlPacket::ConnAck(conn_ack)).await;
     assert_bytes(data, vec![0x20, 0x02, 0x00, 0x00])
 }
 
@@ -34,7 +33,7 @@ async fn it_write_publish_qos_0() {
     publish.topic = "a/b/c".to_string();
     publish.body = BytesMut::from("test body");
 
-    let data = write_packet(&publish).await;
+    let data = write_packet(ControlPacket::Publish(publish)).await;
 
     assert_bytes(data, EXPECTED_DATA.to_vec())
 }
@@ -54,84 +53,85 @@ async fn it_write_publish_qos_greater_than_0() {
     publish.topic = "a/b/c".to_string();
     publish.body = BytesMut::from("test body");
 
-    let data = write_packet(&publish).await;
+    let data = write_packet(ControlPacket::Publish(publish)).await;
 
     assert_bytes(data, EXPECTED_DATA.to_vec())
 }
 
 #[tokio::test]
-async fn it_write_puback() {
-    let mut puback = PubAckPacket::default();
-    puback.packet_id = 0x02;
+async fn it_write_pub_ack() {
+    let mut pub_ack = PubAckPacket::default();
+    pub_ack.packet_id = 0x02;
 
-    let data = write_packet(&puback).await;
+    let data = write_packet(ControlPacket::PubAck(pub_ack)).await;
 
     assert_bytes(data, vec![0x40, 0x02, 0x00, 0x02])
 }
 
 #[tokio::test]
-async fn it_write_pubrec() {
-    let mut pubrec = PubRecPacket::default();
-    pubrec.packet_id = 0x1234;
+async fn it_write_pub_rec() {
+    let mut pub_rec = PubRecPacket::default();
+    pub_rec.packet_id = 0x1234;
 
-    let data = write_packet(&pubrec).await;
+    let data = write_packet(ControlPacket::PubRec(pub_rec)).await;
 
     assert_bytes(data, vec![0x50, 0x02, 0x12, 0x34])
 }
 
 #[tokio::test]
 async fn it_write_pubrel() {
-    let mut pubrel = PubRelPacket::default();
-    pubrel.packet_id = 0x67;
+    let mut pub_rel = PubRelPacket::default();
+    pub_rel.packet_id = 0x67;
 
-    let data = write_packet(&pubrel).await;
+    let data = write_packet(ControlPacket::PubRel(pub_rel)).await;
 
     assert_bytes(data, vec![0x62, 0x02, 0x00, 0x67])
 }
 
 #[tokio::test]
-async fn it_write_pubcomp() {
-    let mut pubcomp = PubCompPacket::default();
-    pubcomp.packet_id = 0xcd12;
+async fn it_write_pub_comp() {
+    let mut pub_comp = PubCompPacket::default();
+    pub_comp.packet_id = 0xcd12;
 
-    let data = write_packet(&pubcomp).await;
+    let data = write_packet(ControlPacket::PubComp(pub_comp)).await;
 
     assert_bytes(data, vec![0x70, 0x02, 0xcd, 0x12])
 }
 
 #[tokio::test]
-async fn it_write_suback() {
-    let mut suback = SubAckPacket::default();
-    suback.packet_id = 0xa3c9;
+async fn it_write_sub_ack() {
+    let mut sub_ack = SubAckPacket::default();
+    sub_ack.packet_id = 0xa3c9;
+    sub_ack.return_codes = vec![
+        SubAckReturnCode::Failure,
+        SubAckReturnCode::SuccessQoS0,
+        SubAckReturnCode::SuccessQoS1,
+        SubAckReturnCode::SuccessQoS2,
+    ];
 
-    let data = write_packet(&suback).await;
+    let data = write_packet(ControlPacket::SubAck(sub_ack)).await;
 
-    assert_bytes(data, vec![0x90, 0x02, 0xa3, 0xc9])
+    assert_bytes(data, vec![0x90, 0x06, 0xa3, 0xc9, 0x80, 0x00, 0x01, 0x02])
 }
 
 #[tokio::test]
-async fn it_write_unsuback() {
-    let mut unsuback = UnSubAckPacket::default();
-    unsuback.packet_id = 6;
+async fn it_write_unsub_ack() {
+    let mut unsub_ack = UnSubAckPacket::default();
+    unsub_ack.packet_id = 6;
 
-    let data = write_packet(&unsuback).await;
+    let data = write_packet(ControlPacket::UnsubAck(unsub_ack)).await;
 
     assert_bytes(data, vec![0xb0, 0x02, 0x00, 0x06])
 }
 
 #[tokio::test]
 async fn it_write_ping_resp() {
-    let ping_resp = PingRespPacket::default();
-
-    let data = write_packet(&ping_resp).await;
+    let data = write_packet(ControlPacket::PingResp).await;
 
     assert_bytes(data, vec![0xd0, 0x00])
 }
 
-async fn write_packet<T>(packet: &T) -> BytesMut
-where
-    T: PacketEncoder + Sync,
-{
+async fn write_packet(packet: ControlPacket) -> BytesMut {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
 
     let mut client = TcpStream::connect(listener.local_addr().unwrap())
@@ -140,8 +140,12 @@ where
 
     let (server, _) = listener.accept().await.unwrap();
 
-    let mut connection = Connection::new(server, 8096);
-    connection.write_packet(packet).await.unwrap();
+    let (_, tx) = server.into_split();
+    let mut mqtt_buffer = MqttBytesWriteStream::new(4096, tx);
+
+    packet_encoder::write_packet(&mut mqtt_buffer, packet)
+        .await
+        .unwrap();
 
     let mut buffer = BytesMut::with_capacity(1024);
     client.read_buf(&mut buffer).await.unwrap();

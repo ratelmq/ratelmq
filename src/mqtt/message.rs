@@ -6,4 +6,5 @@ pub struct Message {
     pub topic: String,
     pub payload: BytesMut,
     pub qos: QoS,
+    pub retain: bool,
 }

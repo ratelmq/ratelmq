@@ -6,14 +6,22 @@ Please feel free to create a PR if You think that we are missing something!
 
 *Because of the early stage of development, the features and dates below are subject to change.*
 
-## 0.1 - TBD
+## 0.1 - 01.03.2021
 
 1. Basic MQTT 3.1 & 3.1.1 support
    1. QoS 0 only
-2. Configuration through file and ENVs
-3. Docker image
+   2. No wildcard subscriptions
+2. Single listener
+3. Configuration through file and ENVs
+4. Docker image
 
 ## 0.2 - TBD
+
+1. Multiple listeners
+2. Wildcard subscriptions
+3. Websockets
+
+## 0.3 - TBD
 
 1. Full MQTT 3.1.1 support 
    1. QoS
@@ -21,7 +29,7 @@ Please feel free to create a PR if You think that we are missing something!
    3. Retained messages
 2. Auth - user & password
 
-## 0.3 - TBD
+## 0.4 - TBD
 
 1. Config validator
 2. MQTT 5
@@ -29,7 +37,7 @@ Please feel free to create a PR if You think that we are missing something!
 4. Performance tests
 5. Fuzz tests
 
-## 0.4 - TBD
+## 0.5 - TBD
 
 1. Monitoring
     1. SYS topics
@@ -42,14 +50,14 @@ Please feel free to create a PR if You think that we are missing something!
     1. HTTP API
     2. Webhooks
 
-## 0.5 - TBD
+## 0.6 - TBD
 
 1. HTTP dashboard
 2. Management CLI app
 3. Plugins
 4. Proxy protocol
 
-## 0.6 - TBD
+## 0.7 - TBD
 
 1. Clustering
 

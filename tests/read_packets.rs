@@ -1,9 +1,10 @@
 use tokio::io::AsyncWriteExt;
 use tokio::net::{TcpListener, TcpStream};
 
-use ratelmq::mqtt::connection::Connection;
 use ratelmq::mqtt::packets::{ControlPacket, ProtocolVersion, QoS};
 use ratelmq::mqtt::subscription::Subscription;
+use ratelmq::mqtt::transport::mqtt_bytes_stream::MqttBytesReadStream;
+use ratelmq::mqtt::transport::packet_decoder;
 
 #[tokio::test]
 async fn it_read_connect_min() {
@@ -21,10 +22,6 @@ async fn it_read_connect_min() {
 
             assert_eq!(connect.user_name, None);
             assert_eq!(connect.password, None);
-            assert_eq!(connect.will_retain, false);
-            assert_eq!(connect.will_qos, QoS::AtMostOnce);
-            assert_eq!(connect.will_flag, false);
-            assert_eq!(connect.will_topic, None);
             assert_eq!(connect.will_message, None);
             assert_eq!(connect.clean_session, true);
 
@@ -241,7 +238,7 @@ async fn it_read_ping_req() {
     let packet = read_packet(DATA).await;
 
     match packet {
-        ControlPacket::PingReq(_) => {
+        ControlPacket::PingReq => {
             // nothing to assert
         }
         _ => panic!("Invalid packet type"),
@@ -258,6 +255,8 @@ async fn read_packet(data: &[u8]) -> ControlPacket {
     let (server, _) = listener.accept().await.unwrap();
     client.write(data).await.unwrap();
 
-    let mut connection = Connection::new(server, 8096);
-    connection.read_packet().await.unwrap()
+    let (rx, _) = server.into_split();
+    let mut mqtt_buffer = MqttBytesReadStream::new(4096, rx);
+
+    packet_decoder::read_packet(&mut mqtt_buffer).await.unwrap()
 }
