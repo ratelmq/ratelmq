@@ -1,11 +1,11 @@
-use crate::mqtt::packets::ProtocolVersion;
+use crate::mqtt::packets::{ClientId, ProtocolVersion};
 
 use crate::mqtt::message::Message;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct ConnectPacket {
     pub version: ProtocolVersion,
-    pub client_id: String,
+    pub client_id: ClientId,
     pub keep_alive_seconds: u16,
     pub clean_session: bool,
 

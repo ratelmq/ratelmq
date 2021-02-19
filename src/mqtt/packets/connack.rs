@@ -19,3 +19,12 @@ pub struct ConnAckPacket {
     pub session_present: bool,
     pub return_code: ConnAckReturnCode,
 }
+
+impl ConnAckPacket {
+    pub fn new(session_present: bool, return_code: ConnAckReturnCode) -> Self {
+        ConnAckPacket {
+            session_present,
+            return_code,
+        }
+    }
+}

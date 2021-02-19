@@ -7,3 +7,5 @@ pub mod message;
 pub mod subscription;
 
 pub mod action;
+
+pub mod events;

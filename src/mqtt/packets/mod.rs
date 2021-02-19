@@ -51,6 +51,8 @@ pub const PACKET_TYPE_PING_RESP: u8 = 13;
 pub const PACKET_TYPE_DISCONNECT: u8 = 14;
 // const PACKET_TYPE_RESERVED15: u8 = 15;
 
+pub type ClientId = String;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProtocolVersion {
     Mqtt3,
