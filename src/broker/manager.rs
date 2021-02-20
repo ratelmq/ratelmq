@@ -1,4 +1,4 @@
-use crate::broker::session::Session;
+use crate::broker::session::{InMemorySessionRepository, Session, SessionService};
 use crate::mqtt::events::{ClientEvent, ServerEvent};
 use crate::mqtt::packets::connack::ConnAckReturnCode;
 use crate::mqtt::packets::suback::{SubAckPacket, SubAckReturnCode};
@@ -7,30 +7,29 @@ use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
 use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, Publish, SubAck, UnsubAck};
 use crate::mqtt::packets::*;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::collections::HashMap;
-use std::net::{SocketAddr};
+use std::net::SocketAddr;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-type Subs = HashMap<String, Vec<Sender<ServerEvent>>>;
-type Sessions = HashMap<ClientId, Session>;
+type Subs = HashMap<String, Vec<ClientId>>;
 
 pub struct Manager {
     rx: Receiver<ClientEvent>,
-    sessions: Sessions,
+    sessions: SessionService<InMemorySessionRepository>,
+    subscriptions: Subs,
 }
 
 impl Manager {
     pub fn new(rx: Receiver<ClientEvent>) -> Manager {
         Manager {
             rx,
-            sessions: Sessions::new(),
+            sessions: SessionService::default(),
+            subscriptions: Subs::new(),
         }
     }
 
     pub async fn run(mut self) {
-        let mut subs: Subs = HashMap::new();
-
         while let Some(event) = self.rx.recv().await {
             log::trace!("Got event {:?}", &event);
 
@@ -44,14 +43,16 @@ impl Manager {
                         //     self.on_connect(action.response, c, &mut sessions).await
                         // }
                         // ControlPacket::ConnAck(_) => {}
-                        ControlPacket::Publish(p) => self.on_publish(tx, p, client_id, &subs).await,
+                        ControlPacket::Publish(p) => self.on_publish(tx, p, client_id).await,
                         // ControlPacket::PubAck(_) => {}
                         // ControlPacket::PubRec(_) => {}
                         // ControlPacket::PubRel(_) => {}
                         // ControlPacket::PubComp(_) => {}
-                        ControlPacket::Subscribe(p) => self.on_subscribe(tx, p, &mut subs).await,
+                        ControlPacket::Subscribe(p) => self.on_subscribe(tx, p, &client_id).await,
                         // ControlPacket::SubAck(_) => {}
-                        ControlPacket::Unsubscribe(p) => self.on_unsubscribe(tx, p, &subs).await,
+                        ControlPacket::Unsubscribe(p) => {
+                            self.on_unsubscribe(tx, p, &client_id).await
+                        }
                         // ControlPacket::UnsubAck(_) => {}
                         ControlPacket::PingReq => self.on_ping_req(tx).await,
                         // ControlPacket::PingResp() => {}
@@ -75,14 +76,15 @@ impl Manager {
     ) {
         debug!("New client {:?} connected", &packet.client_id);
 
-        let session_present = self.sessions.contains_key(&packet.client_id);
+        let session_present = self.sessions.exists(&packet.client_id);
         if !session_present {
             let session = Session::new(
-                packet.client_id.clone(),
+                packet.client_id,
                 address.ip(),
                 !packet.clean_session,
+                sender.clone(),
             );
-            self.sessions.insert(packet.client_id, session);
+            self.sessions.insert(session);
         }
 
         let conn_ack = ConnAckPacket::new(session_present, ConnAckReturnCode::Accepted);
@@ -92,21 +94,21 @@ impl Manager {
             .await
             .unwrap();
 
-        debug!("Active sessions count: {:?}", self.sessions.len());
+        debug!("Active sessions count: {:?}", self.sessions.count());
     }
 
     async fn on_disconnect(&mut self, client_id: ClientId) {
         debug!("Client {:?} disconnected", &client_id);
-        self.sessions.remove(&client_id);
+        self.sessions.delete(&client_id);
 
-        debug!("Active sessions count: {:?}", self.sessions.len());
+        debug!("Active sessions count: {:?}", self.sessions.count());
     }
 
     async fn on_connection_lost(&mut self, client_id: ClientId) {
         info!("Client {:?} disconnected unexpectedly", &client_id);
-        self.sessions.remove(&client_id);
+        self.sessions.delete(&client_id);
 
-        debug!("Active sessions count: {:?}", self.sessions.len());
+        debug!("Active sessions count: {:?}", self.sessions.count());
     }
 
     async fn on_publish(
@@ -114,36 +116,45 @@ impl Manager {
         _sender: Sender<ServerEvent>,
         publish: PublishPacket,
         client_id: ClientId,
-        subs: &Subs,
     ) {
         debug!(
             "Client {:?} published message on topic {:?}",
             &client_id, &publish.topic
         );
 
-        if let Some(senders) = subs.get(&publish.topic) {
-            for s in senders {
-                s.send(ServerEvent::ControlPacket(Publish(publish.clone())))
-                    .await
-                    .unwrap();
+        if let Some(client_ids) = self.subscriptions.get(&publish.topic) {
+            for c in client_ids {
+                match self.sessions.get(c) {
+                    Some(session) => {
+                        let event = ServerEvent::ControlPacket(Publish(publish.clone()));
+                        session.sender().send(event).await.unwrap();
+                    }
+                    None => {
+                        warn!(
+                            "Tried to send message, but session for client {:?} not found",
+                            c
+                        );
+                    }
+                }
             }
         }
     }
 
     async fn on_subscribe(
-        &self,
+        &mut self,
         sender: Sender<ServerEvent>,
         subscribe: SubscribePacket,
-        subs: &mut Subs,
+        client_id: &ClientId,
     ) {
         debug!("Client subscribed to topics {:?}", &subscribe.subscriptions);
 
         let mut return_codes = Vec::new();
         for subscription in subscribe.subscriptions {
             // each subscription request must be handled as a separate subscribe packet
-            subs.entry(subscription.topic().to_string())
+            self.subscriptions
+                .entry(subscription.topic().to_string())
                 .or_insert(Vec::new())
-                .push(sender.clone());
+                .push(client_id.clone());
             return_codes.push(SubAckReturnCode::Failure);
         }
 
@@ -158,7 +169,7 @@ impl Manager {
         &self,
         sender: Sender<ServerEvent>,
         unsubscribe: UnsubscribePacket,
-        _subs: &Subs,
+        _client_id: &ClientId,
     ) {
         debug!("Client unsubscribed from topics {:?}", &unsubscribe.topics);
 

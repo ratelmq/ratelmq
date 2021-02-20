@@ -1,4 +1,3 @@
-use crate::mqtt::action::Action;
 use crate::mqtt::events::{ClientEvent, ServerEvent};
 use crate::mqtt::packets::ControlPacket;
 use crate::mqtt::transport::mqtt_bytes_stream::{MqttBytesReadStream, MqttBytesWriteStream};
@@ -70,7 +69,7 @@ impl MqttListener {
         mut read_stream: &mut MqttBytesReadStream,
         address: SocketAddr,
     ) {
-        // the first packet must be CONNECT
+        // the first packet must be CONNECT - MQTT-3.1.0-1
         let client_id;
         if let Ok(packet) = read_packet(&mut read_stream).await {
             trace!("Read the first packet: {:?}", &packet);
