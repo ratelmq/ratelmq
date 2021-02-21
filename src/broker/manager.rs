@@ -7,65 +7,84 @@ use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
 use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, Publish, SubAck, UnsubAck};
 use crate::mqtt::packets::*;
-use log::{debug, error, info, warn};
+use log::{debug, error, info, warn, trace};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::{broadcast, mpsc};
+use tokio::select;
 
 type Subs = HashMap<String, Vec<ClientId>>;
 
 pub struct Manager {
-    rx: Receiver<ClientEvent>,
+    rx: mpsc::Receiver<ClientEvent>,
+    ctrl_c_rx: broadcast::Receiver<()>,
     sessions: SessionService<InMemorySessionRepository>,
     subscriptions: Subs,
 }
 
 impl Manager {
-    pub fn new(rx: Receiver<ClientEvent>) -> Manager {
+    pub fn new(rx: Receiver<ClientEvent>, ctrl_c_rx: broadcast::Receiver<()>) -> Manager {
         Manager {
             rx,
+            ctrl_c_rx,
             sessions: SessionService::default(),
             subscriptions: Subs::new(),
         }
     }
 
     pub async fn run(mut self) {
-        while let Some(event) = self.rx.recv().await {
-            log::trace!("Got event {:?}", &event);
+        loop {
 
-            match event {
-                ClientEvent::Connected(c, address, tx) => self.on_connect(tx, c, address).await,
-                ClientEvent::ControlPacket(client_id, packet, tx) => {
-                    log::trace!("Got packet {:?}", packet);
+            select! {
+                _ = self.ctrl_c_rx.recv() => {
+                    trace!("Stopping manager");
+                    break;
+                }
+                 maybe_event = self.rx.recv() => {
+                    if let Some(event) = maybe_event {
+                        trace!("Got event {:?}", &event);
 
-                    match packet {
-                        // ControlPacket::Connect(c) => {
-                        //     self.on_connect(action.response, c, &mut sessions).await
-                        // }
-                        // ControlPacket::ConnAck(_) => {}
-                        ControlPacket::Publish(p) => self.on_publish(tx, p, client_id).await,
-                        // ControlPacket::PubAck(_) => {}
-                        // ControlPacket::PubRec(_) => {}
-                        // ControlPacket::PubRel(_) => {}
-                        // ControlPacket::PubComp(_) => {}
-                        ControlPacket::Subscribe(p) => self.on_subscribe(tx, p, &client_id).await,
-                        // ControlPacket::SubAck(_) => {}
-                        ControlPacket::Unsubscribe(p) => {
-                            self.on_unsubscribe(tx, p, &client_id).await
+                        match event {
+                            ClientEvent::Connected(c, address, tx) => self.on_connect(tx, c, address).await,
+                            ClientEvent::ControlPacket(client_id, packet, tx) => {
+                                self.on_packet(client_id, packet, tx).await;
+                            }
+                            ClientEvent::Disconnected(_client_id) => {}
+                            ClientEvent::ConnectionLost(client_id) => {
+                                self.on_connection_lost(client_id).await;
+                            }
                         }
-                        // ControlPacket::UnsubAck(_) => {}
-                        ControlPacket::PingReq => self.on_ping_req(tx).await,
-                        // ControlPacket::PingResp() => {}
-                        ControlPacket::Disconnect(_) => self.on_disconnect(client_id).await,
-                        _ => error!("Packet {} not supported", &packet),
-                    };
-                }
-                ClientEvent::Disconnected(_client_id) => {}
-                ClientEvent::ConnectionLost(client_id) => {
-                    self.on_connection_lost(client_id).await;
-                }
+                    }
+                 }
             }
         }
+    }
+
+    async fn on_packet(&mut self, client_id: String, packet: ControlPacket, tx: Sender<ServerEvent>) {
+        trace!("Got packet {:?}", packet);
+
+        match packet {
+            // ControlPacket::Connect(c) => {
+            //     self.on_connect(action.response, c, &mut sessions).await
+            // }
+            // ControlPacket::ConnAck(_) => {}
+            ControlPacket::Publish(p) => self.on_publish(tx, p, client_id).await,
+            // ControlPacket::PubAck(_) => {}
+            // ControlPacket::PubRec(_) => {}
+            // ControlPacket::PubRel(_) => {}
+            // ControlPacket::PubComp(_) => {}
+            ControlPacket::Subscribe(p) => self.on_subscribe(tx, p, &client_id).await,
+            // ControlPacket::SubAck(_) => {}
+            ControlPacket::Unsubscribe(p) => {
+                self.on_unsubscribe(tx, p, &client_id).await
+            }
+            // ControlPacket::UnsubAck(_) => {}
+            ControlPacket::PingReq => self.on_ping_req(tx).await,
+            // ControlPacket::PingResp() => {}
+            ControlPacket::Disconnect(_) => self.on_disconnect(client_id).await,
+            _ => error!("Packet {} not supported", &packet),
+        };
     }
 
     async fn on_connect(

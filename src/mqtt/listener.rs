@@ -7,18 +7,21 @@ use log::{debug, error, trace, warn};
 use std::net::SocketAddr;
 use tokio::io::Error;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::mpsc;
+use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::{broadcast, mpsc};
 
 pub struct MqttListener {
     listener: TcpListener,
-    client_event_tx: Sender<ClientEvent>,
+    client_event_tx: mpsc::Sender<ClientEvent>,
+    ctrl_c_rx: broadcast::Receiver<()>,
 }
 
 impl MqttListener {
     pub async fn bind(
         address: &str,
-        client_event_tx: Sender<ClientEvent>,
+        client_event_tx: mpsc::Sender<ClientEvent>,
+        ctrl_c_rx: broadcast::Receiver<()>,
     ) -> Result<MqttListener, Error> {
         debug!("Binding to {}", &address);
 
@@ -26,18 +29,34 @@ impl MqttListener {
         let mqtt_listener = MqttListener {
             listener,
             client_event_tx,
+            ctrl_c_rx,
         };
         Ok(mqtt_listener)
     }
 
-    pub async fn start_accepting(self) {
+    pub async fn start_accepting(mut self) {
         loop {
-            let (socket, address) = self.listener.accept().await.unwrap();
+            select! {
+                _ = self.ctrl_c_rx.recv() => {
+                    trace!("Stopping listener");
+                    break;
+                }
+                _ = Self::accept(&self.listener, &self.client_event_tx) => {}
+            }
+        }
+    }
 
-            let client_event_tx = self.client_event_tx.clone();
-            tokio::spawn(async move {
-                Self::handle_connection(socket, client_event_tx, address).await;
-            });
+    async fn accept(listener: &TcpListener, client_event_tx: &mpsc::Sender<ClientEvent>) {
+        match listener.accept().await {
+            Ok((socket, address)) => {
+                let client_event_tx = client_event_tx.clone();
+                tokio::spawn(async move {
+                    Self::handle_connection(socket, client_event_tx, address).await;
+                });
+            }
+            Err(e) => {
+                error!("Error while accepting connection: {:?}", e);
+            }
         }
     }
 
