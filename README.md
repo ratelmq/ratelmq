@@ -10,6 +10,18 @@
 
 ## Installation
 
+### Docker image
+
+RatelMQ images are available on [Docker Hub](https://hub.docker.com/r/ratelmq/ratelmq).
+
+Start container: `docker run --name ratelmq -p 1883:1883 ratelmq/ratelmq:main`
+
+### Precompiled binaries
+
+TBD
+
+### Building from sources
+
 TBD
 
 ## Configuration
@@ -23,6 +35,10 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 ## Roadmap
 
 See [ROADMAP.md](ROADMAP.md) for details.
+
+## Versioning
+
+TBD
 
 ## Resources
 
