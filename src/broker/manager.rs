@@ -7,12 +7,12 @@ use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
 use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, Publish, SubAck, UnsubAck};
 use crate::mqtt::packets::*;
-use log::{debug, error, info, warn, trace};
+use log::{debug, error, info, trace, warn};
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{broadcast, mpsc};
-use tokio::select;
 
 type Subs = HashMap<String, Vec<ClientId>>;
 
@@ -35,7 +35,6 @@ impl Manager {
 
     pub async fn run(mut self) {
         loop {
-
             select! {
                 _ = self.ctrl_c_rx.recv() => {
                     trace!("Stopping manager");
@@ -61,7 +60,12 @@ impl Manager {
         }
     }
 
-    async fn on_packet(&mut self, client_id: String, packet: ControlPacket, tx: Sender<ServerEvent>) {
+    async fn on_packet(
+        &mut self,
+        client_id: String,
+        packet: ControlPacket,
+        tx: Sender<ServerEvent>,
+    ) {
         trace!("Got packet {:?}", packet);
 
         match packet {
@@ -76,9 +80,7 @@ impl Manager {
             // ControlPacket::PubComp(_) => {}
             ControlPacket::Subscribe(p) => self.on_subscribe(tx, p, &client_id).await,
             // ControlPacket::SubAck(_) => {}
-            ControlPacket::Unsubscribe(p) => {
-                self.on_unsubscribe(tx, p, &client_id).await
-            }
+            ControlPacket::Unsubscribe(p) => self.on_unsubscribe(tx, p, &client_id).await,
             // ControlPacket::UnsubAck(_) => {}
             ControlPacket::PingReq => self.on_ping_req(tx).await,
             // ControlPacket::PingResp() => {}
