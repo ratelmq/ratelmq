@@ -1,6 +1,7 @@
 # RatelMQ
 
 ![CI](https://github.com/ratelmq/ratelmq/workflows/CI/badge.svg)
+![DockerHub](https://img.shields.io/docker/pulls/ratelmq/ratelmq)
 ![GitHub](https://img.shields.io/github/license/ratelmq/ratelmq)
 
 **RatelMQ is an efficient, reliable & scalable MQTT broker.**
