@@ -1,4 +1,5 @@
 use crate::broker::manager::Manager;
+use crate::config::build_info::BUILD_INFO;
 use crate::mqtt::listener::MqttListener;
 use futures::future::join_all;
 use log::info;
@@ -7,7 +8,11 @@ use tokio::sync::broadcast;
 use tokio::sync::mpsc;
 
 pub async fn run() {
-    info!("Initializing RatelMQ...");
+    info!(
+        "Initializing RatelMQ v{}({})...",
+        BUILD_INFO.version,
+        &BUILD_INFO.commit_hash[..10]
+    );
 
     let (ctrl_c_tx, ctrl_c_rx) = broadcast::channel(5);
 
