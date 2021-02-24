@@ -28,6 +28,7 @@ Please feel free to create a PR if You think that we are missing something!
    2. Last will
    3. Retained messages
 2. Auth - user & password
+3. SSL/TLS support
 
 ## 0.4 - TBD
 
