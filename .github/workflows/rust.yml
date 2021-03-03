@@ -62,10 +62,12 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ratelmq/ratelmq:main
 
-      - name: Update DockerHub repo description
-        if: github.event_name != 'pull_request'
-        uses: peter-evans/dockerhub-description@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          repository: ratelmq/ratelmq
+# DockerHub does not support access token for this API
+# https://github.com/peter-evans/dockerhub-description/issues/10
+#      - name: Update DockerHub repo description
+#        if: github.event_name != 'pull_request'
+#        uses: peter-evans/dockerhub-description@v2
+#        with:
+#          username: ${{ secrets.DOCKERHUB_USER }}
+#          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+#          repository: ratelmq/ratelmq
