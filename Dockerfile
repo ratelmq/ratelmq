@@ -2,8 +2,14 @@ FROM rust:1.50-slim-buster as builder
 
 WORKDIR /usr/src/ratelmq
 
-RUN mkdir -p ./src && echo "fn main() {print!(\"foo\");}" > ./src/main.rs
-COPY ./Cargo.toml ./Cargo.toml
+RUN apt-get update && \
+    apt-get install -y git && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p ./src && \
+    echo "fn main() {print!(\"foo\");}" > ./src/main.rs
+
+COPY ./Cargo.toml ./
+COPY ./build.rs ./
 # cache dependencies
 RUN cargo build --release
 
