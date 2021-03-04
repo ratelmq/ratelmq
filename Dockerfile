@@ -9,14 +9,11 @@ RUN apt-get update && \
     echo "fn main() {print!(\"foo\");}" > ./src/main.rs
 
 COPY ./Cargo.toml ./
-COPY ./build.rs ./
 # cache dependencies
 RUN cargo build --release
 
-COPY ./src ./src
-# Force rebuild
-RUN touch -t 200001010000 ./target/release/ratelmq && \
-    cargo build --release
+COPY . ./
+RUN cargo build --release
 
 # ===== actual image =====
 FROM debian:buster-slim
@@ -28,4 +25,4 @@ EXPOSE 1883
 
 ENV RUST_LOG=INFO
 
-CMD ["/ratelmq"]
+ENTRYPOINT ["/ratelmq"]

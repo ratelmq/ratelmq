@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct BuildInfo {
     pub version: &'static str,
     pub commit_hash: &'static str,
