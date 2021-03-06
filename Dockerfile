@@ -19,6 +19,10 @@ RUN cargo build --release
 FROM debian:buster-slim
 LABEL maintainer="Wojciech Wilk w.wilk@metasoftworks.com"
 
+RUN mkdir -p /etc/ratelmq
+
+COPY ./config/ratelmq.toml /etc/ratelmq/ratelmq.toml
+
 COPY --from=builder /usr/src/ratelmq/target/release/ratelmq /ratelmq
 
 EXPOSE 1883
