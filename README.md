@@ -26,7 +26,16 @@ TBD
 
 ## Configuration
 
-TBD
+The main configuration file is located in the `/etc/ratelmq/ratelmq.conf`.
+RatelMQ supports configuration via a [TOML](https://github.com/toml-lang/toml) file and environment variables.
+
+Environment variables take precedence and overwrites those from the configuration file.
+When using environment variables:
+
+* add `RATELMQ_` prefix
+* separate nested items with `__`, e.g. `RATELMQ_MQTT__SOMETHING`
+
+For the default values with description please see [config/ratelmq.toml](config/ratelmq.toml).
 
 ## Changelog
 

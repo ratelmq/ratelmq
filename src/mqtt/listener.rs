@@ -3,7 +3,7 @@ use crate::mqtt::packets::ControlPacket;
 use crate::mqtt::transport::mqtt_bytes_stream::{MqttBytesReadStream, MqttBytesWriteStream};
 use crate::mqtt::transport::packet_decoder::read_packet;
 use crate::mqtt::transport::packet_encoder::write_packet;
-use log::{debug, error, trace, warn};
+use log::{debug, error, info, trace, warn};
 use std::net::SocketAddr;
 use tokio::io::Error;
 use tokio::net::{TcpListener, TcpStream};
@@ -23,9 +23,11 @@ impl MqttListener {
         client_event_tx: mpsc::Sender<ClientEvent>,
         ctrl_c_rx: broadcast::Receiver<()>,
     ) -> Result<MqttListener, Error> {
-        debug!("Binding to {}", &address);
+        debug!("Binding MQTT TCP to {}", &address);
 
         let listener = TcpListener::bind(address).await.unwrap();
+        info!("Listening for MQTT TCP connections on {}", &address);
+
         let mqtt_listener = MqttListener {
             listener,
             client_event_tx,

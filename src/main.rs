@@ -10,13 +10,15 @@ async fn main() {
 
     let version = format!("v{}({})", BUILD_INFO.version, &BUILD_INFO.commit_hash[..10]);
 
-    App::new("RatelMQ")
+    let argument_name_config = "config";
+
+    let arguments = App::new("RatelMQ")
         .version(version.as_str())
         .about("Efficient, reliable & scalable MQTT broker.")
         .arg(
-            Arg::new("config")
+            Arg::new(argument_name_config)
                 .short('c')
-                .long("config")
+                .long(argument_name_config)
                 .value_name("FILE")
                 .default_value("/etc/ratelmq/ratelmq.conf")
                 .about("Sets a configuration file")
@@ -25,5 +27,6 @@ async fn main() {
         )
         .get_matches();
 
-    ratelmq::run().await;
+    let config_filename = arguments.value_of(argument_name_config).unwrap();
+    ratelmq::run(config_filename).await;
 }
