@@ -6,20 +6,19 @@ Please feel free to create a PR if You think that we are missing something!
 
 *Because of the early stage of development, the features and dates below are subject to change.*
 
-## 0.1 - 01.03.2021
+## 0.1 - 01.04.2021
 
 1. Basic MQTT 3.1 & 3.1.1 support
    1. QoS 0 only
    2. No wildcard subscriptions
-2. Single listener
+2. Multiple listeners
 3. Configuration through file and ENVs
 4. Docker image
 
 ## 0.2 - TBD
 
-1. Multiple listeners
-2. Wildcard subscriptions
-3. Websockets
+1. Wildcard subscriptions
+2. Websockets
 
 ## 0.3 - TBD
 
