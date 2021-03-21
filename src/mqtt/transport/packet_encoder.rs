@@ -105,25 +105,25 @@ async fn write_publish(
     if packet.dup {
         first_byte |= FixedHeaderFlags::DUP.bits;
     }
-    first_byte |= (packet.qos as u8) << 1;
-    if packet.retain {
+    first_byte |= (packet.message.qos as u8) << 1;
+    if packet.message.retain {
         first_byte |= FixedHeaderFlags::RETAIN.bits;
     }
 
     buffer.put_u8(first_byte).await?;
 
-    let mut remaining_length: u64 = (packet.topic.len() + 2) as u64;
+    let mut remaining_length: u64 = (packet.message.topic.len() + 2) as u64;
 
-    if packet.qos > QoS::AtMostOnce {
+    if packet.message.qos > QoS::AtMostOnce {
         remaining_length += 2 /* packet id */;
     }
 
-    remaining_length += packet.body.len() as u64;
+    remaining_length += packet.message.payload.len() as u64;
 
     encode_remaining_length(remaining_length, buffer).await?;
 
     // variable header
-    buffer.put_string(packet.topic.as_str()).await?;
+    buffer.put_string(packet.message.topic.as_str()).await?;
 
     if let Some(packet_id) = packet.packet_id {
         buffer.put_u16(packet_id).await?;
@@ -132,7 +132,7 @@ async fn write_publish(
     // payload
 
     // todo: refactor to eliminated clone
-    buffer.put_bytes(packet.body.clone()).await?;
+    buffer.put_bytes(packet.message.payload.clone()).await?;
     Ok(())
 }
 

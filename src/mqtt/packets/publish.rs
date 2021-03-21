@@ -1,15 +1,13 @@
+use crate::mqtt::message::Message;
 use crate::mqtt::packets::QoS;
 use bytes::BytesMut;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct PublishPacket {
-    pub dup: bool,
-    pub qos: QoS,
-    pub retain: bool,
     pub packet_id: Option<u16>,
+    pub dup: bool,
 
-    pub topic: String,
-    pub body: BytesMut,
+    pub message: Message,
 }
 
 impl PublishPacket {
@@ -22,12 +20,14 @@ impl PublishPacket {
         dup: bool,
     ) -> Self {
         PublishPacket {
-            dup,
-            qos,
-            retain,
             packet_id,
-            topic,
-            body,
+            dup,
+            message: Message {
+                qos,
+                retain,
+                topic,
+                payload: body,
+            },
         }
     }
 }

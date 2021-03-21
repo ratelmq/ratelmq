@@ -1,3 +1,12 @@
+use std::collections::HashMap;
+use std::net::SocketAddr;
+
+use log::{debug, error, info, trace, warn};
+use tokio::select;
+use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::{broadcast, mpsc};
+
+use crate::broker::messaging::MessagingService;
 use crate::broker::session::{InMemorySessionRepository, Session, SessionService};
 use crate::mqtt::events::{ClientEvent, ServerEvent};
 use crate::mqtt::packets::connack::ConnAckReturnCode;
@@ -7,20 +16,12 @@ use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
 use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, Publish, SubAck, UnsubAck};
 use crate::mqtt::packets::*;
-use log::{debug, error, info, trace, warn};
-use std::collections::HashMap;
-use std::net::SocketAddr;
-use tokio::select;
-use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::sync::{broadcast, mpsc};
-
-type Subs = HashMap<String, Vec<ClientId>>;
 
 pub struct Manager {
     rx: mpsc::Receiver<ClientEvent>,
     ctrl_c_rx: broadcast::Receiver<()>,
-    sessions: SessionService<InMemorySessionRepository>,
-    subscriptions: Subs,
+    // sessions: SessionService<InMemorySessionRepository>,
+    messaging: MessagingService,
 }
 
 impl Manager {
@@ -28,8 +29,8 @@ impl Manager {
         Manager {
             rx,
             ctrl_c_rx,
-            sessions: SessionService::default(),
-            subscriptions: Subs::new(),
+            // sessions: SessionService::default(),
+            messaging: MessagingService::new(),
         }
     }
 
@@ -97,7 +98,7 @@ impl Manager {
     ) {
         debug!("New client {:?} connected", &packet.client_id);
 
-        let session_present = self.sessions.exists(&packet.client_id);
+        let session_present = self.messaging.session_exists(&packet.client_id);
         if !session_present {
             let session = Session::new(
                 packet.client_id,
@@ -105,7 +106,7 @@ impl Manager {
                 !packet.clean_session,
                 sender.clone(),
             );
-            self.sessions.insert(session);
+            self.messaging.session_insert(session);
         }
 
         let conn_ack = ConnAckPacket::new(session_present, ConnAckReturnCode::Accepted);
@@ -115,21 +116,30 @@ impl Manager {
             .await
             .unwrap();
 
-        debug!("Active sessions count: {:?}", self.sessions.count());
+        debug!(
+            "Active sessions count: {:?}",
+            self.messaging.session_count()
+        );
     }
 
     async fn on_disconnect(&mut self, client_id: ClientId) {
         debug!("Client {:?} disconnected", &client_id);
-        self.sessions.delete(&client_id);
+        self.messaging.session_delete(&client_id);
 
-        debug!("Active sessions count: {:?}", self.sessions.count());
+        debug!(
+            "Active sessions count: {:?}",
+            self.messaging.session_count()
+        );
     }
 
     async fn on_connection_lost(&mut self, client_id: ClientId) {
         info!("Client {:?} disconnected unexpectedly", &client_id);
-        self.sessions.delete(&client_id);
+        self.messaging.session_delete(&client_id);
 
-        debug!("Active sessions count: {:?}", self.sessions.count());
+        debug!(
+            "Active sessions count: {:?}",
+            self.messaging.session_count()
+        );
     }
 
     async fn on_publish(
@@ -140,25 +150,10 @@ impl Manager {
     ) {
         debug!(
             "Client {:?} published message on topic {:?}",
-            &client_id, &publish.topic
+            &client_id, &publish.message.topic
         );
 
-        if let Some(client_ids) = self.subscriptions.get(&publish.topic) {
-            for c in client_ids {
-                match self.sessions.get(c) {
-                    Some(session) => {
-                        let event = ServerEvent::ControlPacket(Publish(publish.clone()));
-                        session.sender().send(event).await.unwrap();
-                    }
-                    None => {
-                        warn!(
-                            "Tried to send message, but session for client {:?} not found",
-                            c
-                        );
-                    }
-                }
-            }
-        }
+        self.messaging.publish(&publish.message, &publish).await;
     }
 
     async fn on_subscribe(
@@ -172,11 +167,8 @@ impl Manager {
         let mut return_codes = Vec::new();
         for subscription in subscribe.subscriptions {
             // each subscription request must be handled as a separate subscribe packet
-            self.subscriptions
-                .entry(subscription.topic().to_string())
-                .or_insert(Vec::new())
-                .push(client_id.clone());
-            return_codes.push(SubAckReturnCode::Failure);
+            let return_code = self.messaging.subscribe(client_id, &subscription);
+            return_codes.push(return_code);
         }
 
         let sub_ack = SubAckPacket::new(subscribe.packet_id, return_codes);
@@ -190,9 +182,11 @@ impl Manager {
         &self,
         sender: Sender<ServerEvent>,
         unsubscribe: UnsubscribePacket,
-        _client_id: &ClientId,
+        client_id: &ClientId,
     ) {
         debug!("Client unsubscribed from topics {:?}", &unsubscribe.topics);
+
+        self.messaging.unsubscribe(client_id, &unsubscribe.topics);
 
         let unsub_ack = UnSubAckPacket::new(unsubscribe.packet_id);
         sender

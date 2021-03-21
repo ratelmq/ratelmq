@@ -10,7 +10,7 @@ use tokio::sync::mpsc;
 
 pub async fn run(config_filename: &str) {
     info!(
-        "Initializing RatelMQ v{}({})...",
+        "Initializing RatelMQ v{} ({})...",
         BUILD_INFO.version,
         &BUILD_INFO.commit_hash[..10]
     );

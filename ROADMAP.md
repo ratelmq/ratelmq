@@ -18,7 +18,8 @@ Please feel free to create a PR if You think that we are missing something!
 ## 0.2 - TBD
 
 1. Wildcard subscriptions
-2. Websockets
+2. Auth - user & password
+3. Websockets
 
 ## 0.3 - TBD
 
@@ -26,7 +27,7 @@ Please feel free to create a PR if You think that we are missing something!
    1. QoS
    2. Last will
    3. Retained messages
-2. Auth - user & password
+2. Shared subscriptions
 3. SSL/TLS support
 
 ## 0.4 - TBD
