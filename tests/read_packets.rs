@@ -55,12 +55,12 @@ async fn it_read_publish_qos_0() {
 
     match packet {
         ControlPacket::Publish(publish) => {
-            assert_eq!(publish.dup, false);
-            assert_eq!(publish.qos, QoS::AtMostOnce);
-            assert_eq!(publish.retain, false);
             assert_eq!(publish.packet_id, None);
-            assert_eq!(publish.topic, "a/b/c");
-            assert_eq!(publish.body, "test body");
+            assert_eq!(publish.dup, false);
+            assert_eq!(publish.message.qos, QoS::AtMostOnce);
+            assert_eq!(publish.message.retain, false);
+            assert_eq!(publish.message.topic, "a/b/c");
+            assert_eq!(publish.message.payload, "test body");
         }
         _ => panic!("Invalid packet type"),
     };
@@ -77,12 +77,12 @@ async fn it_read_publish_qos_greater_than_0() {
 
     match packet {
         ControlPacket::Publish(publish) => {
-            assert_eq!(publish.dup, true);
-            assert_eq!(publish.retain, true);
-            assert_eq!(publish.qos, QoS::ExactlyOnce);
-            assert_eq!(publish.topic, "a/b/c");
             assert_eq!(publish.packet_id, Some(0x1223));
-            assert_eq!(publish.body, "test body");
+            assert_eq!(publish.dup, true);
+            assert_eq!(publish.message.retain, true);
+            assert_eq!(publish.message.qos, QoS::ExactlyOnce);
+            assert_eq!(publish.message.topic, "a/b/c");
+            assert_eq!(publish.message.payload, "test body");
         }
         _ => panic!("Invalid packet type"),
     };

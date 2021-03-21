@@ -28,10 +28,10 @@ async fn it_write_publish_qos_0() {
     ];
 
     let mut publish = PublishPacket::default();
-    publish.qos = QoS::AtMostOnce;
     publish.dup = false;
-    publish.topic = "a/b/c".to_string();
-    publish.body = BytesMut::from("test body");
+    publish.message.qos = QoS::AtMostOnce;
+    publish.message.topic = "a/b/c".to_string();
+    publish.message.payload = BytesMut::from("test body");
 
     let data = write_packet(ControlPacket::Publish(publish)).await;
 
@@ -46,12 +46,12 @@ async fn it_write_publish_qos_greater_than_0() {
     ];
 
     let mut publish = PublishPacket::default();
-    publish.dup = true;
-    publish.qos = QoS::ExactlyOnce;
-    publish.retain = true;
     publish.packet_id = Some(0x1223);
-    publish.topic = "a/b/c".to_string();
-    publish.body = BytesMut::from("test body");
+    publish.dup = true;
+    publish.message.qos = QoS::ExactlyOnce;
+    publish.message.retain = true;
+    publish.message.topic = "a/b/c".to_string();
+    publish.message.payload = BytesMut::from("test body");
 
     let data = write_packet(ControlPacket::Publish(publish)).await;
 
