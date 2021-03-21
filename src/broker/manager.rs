@@ -179,7 +179,7 @@ impl Manager {
     }
 
     async fn on_unsubscribe(
-        &self,
+        &mut self,
         sender: Sender<ServerEvent>,
         unsubscribe: UnsubscribePacket,
         client_id: &ClientId,

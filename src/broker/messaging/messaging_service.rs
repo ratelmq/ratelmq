@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::broker::session::session_repository::SessionRepository;
 use crate::broker::session::{InMemorySessionRepository, Session, SessionService};
@@ -10,7 +10,7 @@ use crate::mqtt::packets::{ClientId, PublishPacket};
 use crate::mqtt::subscription::Subscription;
 use log::warn;
 
-type Subs = HashMap<String, Vec<ClientId>>;
+type Subs = HashMap<String, HashSet<ClientId>>;
 
 #[derive(Default)]
 pub struct MessagingService {
@@ -53,13 +53,19 @@ impl MessagingService {
     ) -> SubAckReturnCode {
         self.subscriptions
             .entry(subscription.topic().to_string())
-            .or_insert(Vec::new())
-            .push(client_id.clone());
+            .or_insert(HashSet::new())
+            .insert(client_id.clone());
 
         SubAckReturnCode::SuccessQoS0
     }
 
-    pub fn unsubscribe(&self, client_id: &ClientId, topics: &Vec<String>) {}
+    pub fn unsubscribe(&mut self, client_id: &ClientId, topics: &Vec<String>) {
+        for topic in topics {
+            if let Some(client_ids) = self.subscriptions.get_mut(topic) {
+                client_ids.remove(client_id);
+            }
+        }
+    }
 
     pub async fn publish(&self, message: &Message, publish: &PublishPacket) {
         if let Some(client_ids) = self.subscriptions.get(&message.topic) {
