@@ -124,7 +124,7 @@ impl Manager {
 
     async fn on_disconnect(&mut self, client_id: ClientId) {
         debug!("Client {:?} disconnected", &client_id);
-        self.messaging.session_delete(&client_id);
+        self.messaging.session_remove(&client_id);
 
         debug!(
             "Active sessions count: {:?}",
@@ -134,7 +134,7 @@ impl Manager {
 
     async fn on_connection_lost(&mut self, client_id: ClientId) {
         info!("Client {:?} disconnected unexpectedly", &client_id);
-        self.messaging.session_delete(&client_id);
+        self.messaging.session_remove(&client_id);
 
         debug!(
             "Active sessions count: {:?}",

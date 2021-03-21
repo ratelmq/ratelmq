@@ -38,7 +38,11 @@ impl MessagingService {
         self.sessions.get(client_id)
     }
 
-    pub fn session_delete(&mut self, client_id: &ClientId) -> Option<Session> {
+    pub fn session_remove(&mut self, client_id: &ClientId) -> Option<Session> {
+        for (_, client_ids) in &mut self.subscriptions {
+            client_ids.remove(client_id);
+        }
+
         self.sessions.delete(client_id)
     }
 
