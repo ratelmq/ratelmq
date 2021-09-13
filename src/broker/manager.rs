@@ -1,4 +1,3 @@
-
 use std::net::SocketAddr;
 
 use log::{debug, error, info, trace};
@@ -10,7 +9,7 @@ use crate::broker::messaging::MessagingService;
 use crate::broker::session::{InMemorySessionRepository, Session, SessionService};
 use crate::mqtt::events::{ClientEvent, ServerEvent};
 use crate::mqtt::packets::connack::ConnAckReturnCode;
-use crate::mqtt::packets::suback::{SubAckPacket};
+use crate::mqtt::packets::suback::SubAckPacket;
 use crate::mqtt::packets::subscribe::SubscribePacket;
 use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
