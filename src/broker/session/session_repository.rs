@@ -58,7 +58,7 @@ mod tests {
     use tokio::sync::mpsc;
 
     fn create_session() -> Session {
-        let (tx, rx) = mpsc::channel(32);
+        let (tx, _rx) = mpsc::channel(32);
         Session::new(
             "client-1".to_string(),
             IpAddr::V4(Ipv4Addr::LOCALHOST),
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_in_memory_exists_false() {
-        let mut sessions = HashMap::new();
+        let sessions = HashMap::new();
         let client_id = "client-1".to_string();
 
         let repository = InMemorySessionRepository::new(sessions);

@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+
 use std::net::SocketAddr;
 
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, trace};
 use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{broadcast, mpsc};
@@ -10,11 +10,11 @@ use crate::broker::messaging::MessagingService;
 use crate::broker::session::{InMemorySessionRepository, Session, SessionService};
 use crate::mqtt::events::{ClientEvent, ServerEvent};
 use crate::mqtt::packets::connack::ConnAckReturnCode;
-use crate::mqtt::packets::suback::{SubAckPacket, SubAckReturnCode};
+use crate::mqtt::packets::suback::{SubAckPacket};
 use crate::mqtt::packets::subscribe::SubscribePacket;
 use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
-use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, Publish, SubAck, UnsubAck};
+use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, SubAck, UnsubAck};
 use crate::mqtt::packets::*;
 
 pub struct Manager {

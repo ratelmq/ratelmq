@@ -67,9 +67,9 @@ impl SubscriptionsRepository {
         }
     }
 
-    pub fn disconnected(&mut self, client_id: &ClientId) {}
+    pub fn disconnected(&mut self, _client_id: &ClientId) {}
 
-    pub fn connections_lost(&mut self, client_id: &ClientId) {}
+    pub fn connections_lost(&mut self, _client_id: &ClientId) {}
 
     pub fn subscribed_clients(&self, topic: &String) -> Option<Vec<ClientId>> {
         let mut client_ids = Vec::<ClientId>::new();

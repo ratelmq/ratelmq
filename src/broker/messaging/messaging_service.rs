@@ -1,10 +1,10 @@
-use std::collections::{HashMap, HashSet};
+
 
 use log::warn;
 
 use crate::broker::messaging::subscriptions_repository::SubscriptionsRepository;
 use crate::broker::session::session_repository::SessionRepository;
-use crate::broker::session::{InMemorySessionRepository, Session, SessionService};
+use crate::broker::session::{InMemorySessionRepository, Session};
 use crate::mqtt::events::ServerEvent;
 use crate::mqtt::message::Message;
 use crate::mqtt::packets::suback::SubAckReturnCode;
