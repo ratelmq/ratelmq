@@ -6,7 +6,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{broadcast, mpsc};
 
 use crate::broker::messaging::MessagingService;
-use crate::broker::session::{InMemorySessionRepository, Session, SessionService};
+use crate::broker::session::Session;
 use crate::mqtt::events::{ClientEvent, ServerEvent};
 use crate::mqtt::packets::connack::ConnAckReturnCode;
 use crate::mqtt::packets::suback::SubAckPacket;
