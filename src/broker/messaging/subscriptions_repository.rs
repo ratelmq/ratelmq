@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs::remove_dir;
 
 use crate::mqtt::packets::suback::SubAckReturnCode;
 use crate::mqtt::packets::ClientId;
@@ -67,9 +68,13 @@ impl SubscriptionsRepository {
         }
     }
 
-    pub fn disconnected(&mut self, _client_id: &ClientId) {}
+    pub fn disconnected(&mut self, client_id: &ClientId) {
+        Self::remove_client(&mut self.root, client_id);
+    }
 
-    pub fn connections_lost(&mut self, _client_id: &ClientId) {}
+    pub fn connections_lost(&mut self, client_id: &ClientId) {
+        Self::remove_client(&mut self.root, client_id);
+    }
 
     pub fn subscribed_clients(&self, topic: &String) -> Option<Vec<ClientId>> {
         let mut client_ids = Vec::<ClientId>::new();
@@ -104,6 +109,17 @@ impl SubscriptionsRepository {
 
         Some(client_ids)
         // None
+    }
+
+    fn remove_client(node: &mut SubscriptionNode, client_id: &ClientId) {
+        node.clients
+            .iter()
+            .position(|c| c == client_id)
+            .map(|p| node.clients.remove(p));
+
+        node.children
+            .iter_mut()
+            .for_each(|c| Self::remove_client(c.1, client_id));
     }
 }
 
@@ -284,6 +300,22 @@ mod tests {
             repo.subscribed_clients(&"a/b/c".to_string()),
             Some(vec!["c1".to_string(), "c2".to_string(), "c3".to_string()]),
         );
+    }
+
+    #[test]
+    fn test_disconnect_remove_client() {
+        let mut repo = SubscriptionsRepository::new();
+
+        subscribe(&mut repo, "a", "c1");
+        subscribe(&mut repo, "a/b/c", "c1");
+        subscribe(&mut repo, "a/+/+", "c1");
+        subscribe(&mut repo, "a/#", "c1");
+
+        repo.disconnected(&ClientId::from("c1"));
+
+        assert(repo.subscribed_clients(&"a".to_string()), Some(vec![]));
+        assert(repo.subscribed_clients(&"a/b".to_string()), Some(vec![]));
+        assert(repo.subscribed_clients(&"a/b/c".to_string()), Some(vec![]));
     }
 
     fn assert(actual: Option<Vec<ClientId>>, expected: Option<Vec<ClientId>>) {
