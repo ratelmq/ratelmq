@@ -125,14 +125,27 @@ async fn decode_connect(
     // payload
     let client_id = buffer.get_string().await?;
 
+    let user_name = if connect_flags.contains(ConnectFlags::USERNAME) {
+        Some(buffer.get_string().await?)
+    } else {
+        None
+    };
+
+    let password = if connect_flags.contains(ConnectFlags::PASSWORD) {
+        // todo: allow non-utf8 bytes?
+        Some(buffer.get_string().await?)
+    } else {
+        None
+    };
+
     let connect_packet = ConnectPacket::new(
         ProtocolVersion::Mqtt3,
         client_id,
         keep_alive_seconds,
         clean_session,
         None,
-        None,
-        None,
+        user_name,
+        password,
     );
 
     Ok(ControlPacket::Connect(connect_packet))
