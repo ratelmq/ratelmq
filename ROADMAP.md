@@ -19,7 +19,8 @@ Please feel free to create a PR if You think that we are missing something!
 
 1. Wildcard subscriptions
 2. Auth - user & password
-3. Websockets
+3. Keep alive
+4. Websockets
 
 ## 0.3 - TBD
 
