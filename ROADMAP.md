@@ -18,7 +18,7 @@ Please feel free to create a PR if You think that we are missing something!
 ## 0.2 - TBD
 
 1. Wildcard subscriptions
-2. Auth - user & password
+2. Authentication - user & password
 3. Keep alive
 4. Websockets
 
@@ -28,16 +28,17 @@ Please feel free to create a PR if You think that we are missing something!
    1. QoS
    2. Last will
    3. Retained messages
-2. Shared subscriptions
-3. SSL/TLS support
+2. Authorization - ACLs
+3. Shared subscriptions
+4. SSL/TLS support
 
 ## 0.4 - TBD
 
 1. Config validator
 2. MQTT 5
-3. DEB & RPM packages and repos?
-4. Performance tests
-5. Fuzz tests
+4. DEB & RPM packages and repos?
+5. Performance tests
+6. Fuzz tests
 
 ## 0.5 - TBD
 
@@ -45,9 +46,10 @@ Please feel free to create a PR if You think that we are missing something!
     1. SYS topics
     2. Prometheus/Graphite exporter
     3. Sample Grafana dashboard
-2. Auth
+2. Authentication/authorization
     1. OAuth/JWT based
-    2. Webhook
+    2. Webhooks
+    3. Integration with e.g. Postgres, Redis
 4. Extensibility
     1. HTTP API
     2. Webhooks
