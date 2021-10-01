@@ -1,3 +1,4 @@
+use crate::broker::authentication::FileIdentityManager;
 use crate::broker::manager::Manager;
 use crate::config::build_info::BUILD_INFO;
 use crate::mqtt::listener::MqttListener;
@@ -23,7 +24,7 @@ pub async fn run(config_filename: &str) {
 
     let (client_tx, client_rx) = mpsc::channel(32);
 
-    let manager = Manager::new(client_rx, ctrl_c_rx);
+    let manager = Manager::new(client_rx, ctrl_c_rx, &settings);
     let manager_future = tokio::spawn(manager.run());
 
     let mut listeners = Vec::new();

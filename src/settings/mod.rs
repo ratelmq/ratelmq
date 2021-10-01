@@ -7,8 +7,14 @@ pub struct MqttSettings {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct AuthenticationSettings {
+    pub password_file: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Settings {
     pub mqtt: MqttSettings,
+    pub authentication: AuthenticationSettings,
 }
 
 impl Settings {
@@ -21,3 +27,5 @@ impl Settings {
         config.try_into()
     }
 }
+
+// todo: tests for envs precedence

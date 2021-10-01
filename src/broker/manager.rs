@@ -5,6 +5,7 @@ use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{broadcast, mpsc};
 
+use crate::broker::authentication::{FileIdentityManager, IdentityProvider};
 use crate::broker::messaging::MessagingService;
 use crate::broker::session::Session;
 use crate::mqtt::events::{ClientEvent, ServerEvent};
@@ -15,21 +16,32 @@ use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
 use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, SubAck, UnsubAck};
 use crate::mqtt::packets::*;
+use crate::settings::Settings;
 
 pub struct Manager {
     rx: mpsc::Receiver<ClientEvent>,
     ctrl_c_rx: broadcast::Receiver<()>,
     // sessions: SessionService<InMemorySessionRepository>,
     messaging: MessagingService,
+    identity_provider: Box<dyn IdentityProvider + Send + Sync>,
 }
 
 impl Manager {
-    pub fn new(rx: Receiver<ClientEvent>, ctrl_c_rx: broadcast::Receiver<()>) -> Manager {
+    pub fn new(
+        rx: Receiver<ClientEvent>,
+        ctrl_c_rx: broadcast::Receiver<()>,
+        settings: &Settings,
+    ) -> Manager {
+        let identity_provider = Box::new(
+            FileIdentityManager::new(settings.authentication.password_file.as_str()).unwrap(),
+        );
+
         Manager {
             rx,
             ctrl_c_rx,
             // sessions: SessionService::default(),
             messaging: MessagingService::new(),
+            identity_provider,
         }
     }
 
@@ -96,6 +108,21 @@ impl Manager {
         address: SocketAddr,
     ) {
         debug!("New client {:?} connected", &packet.client_id);
+
+        if let Some(user_name) = packet.user_name {
+            let password = packet.password.unwrap();
+            if let Err(e) = self.identity_provider.authenticate(&user_name, &password) {
+                info!("Client {} authentication error: {:?}", &user_name, &e);
+
+                let conn_ack = ConnAckPacket::new(false, ConnAckReturnCode::NotAuthorized);
+                sender
+                    .send(ServerEvent::ControlPacket(ControlPacket::ConnAck(conn_ack)))
+                    .await
+                    .unwrap();
+                sender.send(ServerEvent::Disconnect).await.unwrap();
+                return;
+            }
+        };
 
         let session_present = self.messaging.session_exists(&packet.client_id);
         if !session_present {

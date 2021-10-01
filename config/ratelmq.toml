@@ -1,2 +1,5 @@
 [mqtt]
 listeners_tcp = [ "0.0.0.0:1883" ]
+
+[authentication]
+password_file = "/etc/ratelmq/passwd"
