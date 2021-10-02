@@ -1,8 +1,12 @@
 on:
   push:
+    paths-ignore:
+      - 'ratelmq-passwd/**'
   pull_request:
+    paths-ignore:
+      - 'ratelmq-passwd/**'
 
-name: CI
+name: CI - RatelMQ broker
 
 jobs:
   ci:
