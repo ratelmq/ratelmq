@@ -1,0 +1,58 @@
+on:
+  push:
+    paths:
+      - 'ratelmq-passwd/**'
+      - '.github/workflows/ratelmq-passwd.yml'
+  pull_request:
+    paths:
+      - 'ratelmq-passwd/**'
+      - '.github/workflows/ratelmq-passwd.yml'
+
+name: CI - ratelmq-passwd
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+          #- 1.31.0  # MSRV
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+          components: rustfmt, clippy
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: -p ratelmq-passwd
+
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p ratelmq-passwd
+
+      - name: Format
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -p ratelmq-passwd --all -- --check
+
+      - name: Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -p ratelmq-passwd
