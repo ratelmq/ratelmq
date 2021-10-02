@@ -1,6 +1,11 @@
+[workspace]
+members = [
+    "ratelmq-passwd",
+]
+
 [package]
 name = "ratelmq"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Wojciech Wilk <w.wilk@metasoftworks.com>"]
 edition = "2018"
 readme = "README.md"
