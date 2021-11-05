@@ -9,6 +9,8 @@ repository = "https://github.com/ratelmq/ratelmq"
 license = "Apache-2.0"
 
 [dependencies]
+ratelmq = {path = ".."}
+
 clap = "3.0.0-beta.2"
 env_logger = "0.8.2"
-ratelmq = {path = ".."}
+regex = "1.5"
