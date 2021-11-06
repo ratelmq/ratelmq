@@ -1,5 +1,5 @@
 # ===== builder =====
-FROM rust:1.55-slim-buster as builder
+FROM rust:1.56-slim-buster as builder
 
 WORKDIR /usr/src/ratelmq
 
