@@ -1,6 +1,11 @@
 use clap::{App, Arg, ArgMatches};
 use regex::RegexBuilder;
 
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
+    Argon2,
+};
+
 use ratelmq::config::build_info::BUILD_INFO;
 
 const ARGUMENT_NAME_FILE: &str = "file";
@@ -33,7 +38,7 @@ fn main() {
     let updated_credentials = if entry_exists {
         let text = match delete {
             true => "".to_string(),
-            false => build_entry(user_name, password),
+            false => build_entry(user_name, password).replace("$", "$$"), // for regexp
         };
 
         Some(
@@ -96,6 +101,16 @@ fn build_arguments(version: String) -> ArgMatches {
         .get_matches()
 }
 
-fn build_entry(user_name: &str, password: Option<&str>) -> String {
-    format!("{}:{}\n", user_name, password.unwrap())
+fn build_entry(user_name: &str, maybe_password: Option<&str>) -> String {
+    let password = maybe_password.unwrap();
+
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+
+    let encrypted_password = argon2
+        .hash_password(password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
+
+    format!("{}:{}\n", user_name, &encrypted_password)
 }

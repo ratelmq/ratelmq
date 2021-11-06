@@ -1,8 +1,13 @@
-use crate::broker::authentication::AuthenticationError::InvalidPassword;
+use crate::broker::authentication::AuthenticationError::{EncryptionError, InvalidPassword};
 use crate::broker::authentication::FileIdentityManagerError::InvalidEntry;
 use std::collections::HashMap;
 use std::io::Error;
 use AuthenticationError::UserNotFound;
+
+use argon2::{
+    password_hash::{PasswordHash, PasswordVerifier},
+    Argon2,
+};
 
 #[derive(Debug)]
 pub enum AuthenticationError {
@@ -10,6 +15,7 @@ pub enum AuthenticationError {
     // InvalidPassword(InvalidPassword),
     UserNotFound,
     InvalidPassword,
+    EncryptionError(argon2::password_hash::Error),
 }
 
 // #[derive(Debug, Clone)]
@@ -65,13 +71,15 @@ impl FileIdentityManager {
 
 impl IdentityProvider for FileIdentityManager {
     fn authenticate(&self, username: &str, password: &str) -> Result<(), AuthenticationError> {
-        // todo: encryption
-
-        self.passwords_by_username
+        let password_hash = self
+            .passwords_by_username
             .get(username)
-            .ok_or(UserNotFound)?
-            .eq(password)
-            .then(|| ())
-            .ok_or(InvalidPassword)
+            .ok_or(UserNotFound)?;
+
+        let parsed_hash = PasswordHash::new(password_hash).map_err(|e| EncryptionError(e))?;
+
+        Argon2::default()
+            .verify_password(password.as_bytes(), &parsed_hash)
+            .map_err(|e| InvalidPassword)
     }
 }
