@@ -35,7 +35,8 @@ Please feel free to create a PR if You think that we are missing something!
 ## 0.4 - TBD
 
 1. Config validator
-2. MQTT 5
+2. Refactoring
+3. MQTT 5
 4. DEB & RPM packages and repos?
 5. Performance tests
 6. Fuzz tests
