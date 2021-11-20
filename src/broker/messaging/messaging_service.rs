@@ -9,6 +9,8 @@ use crate::mqtt::packets::suback::SubAckReturnCode;
 use crate::mqtt::packets::ControlPacket::Publish;
 use crate::mqtt::packets::{ClientId, PublishPacket};
 use crate::mqtt::subscription::Subscription;
+use std::collections::hash_map::Iter;
+use chrono::Utc;
 
 pub struct MessagingService {
     sessions: InMemorySessionRepository,
@@ -33,6 +35,24 @@ impl MessagingService {
 
     pub fn session_get(&self, client_id: &ClientId) -> Option<&Session> {
         self.sessions.get(client_id)
+    }
+
+    pub fn session_get_mut(&mut self, client_id: &ClientId) -> Option<&mut Session> {
+        self.sessions.get_mut(client_id)
+    }
+
+    pub fn session_get_keep_alive_expired(&self) -> Vec<&Session> {
+        let now = Utc::now();
+
+        self.sessions
+            .iter()
+            .filter_map(|(client_id, session) | {
+                match session.is_keep_alive_expired(&now) {
+                    true => Some(session),
+                    false => None,
+                }
+            } )
+            .collect()
     }
 
     pub fn connection_lost(&mut self, client_id: &ClientId) -> Option<Session> {

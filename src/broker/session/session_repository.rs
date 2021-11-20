@@ -1,14 +1,17 @@
 use crate::broker::session::Session;
 use crate::mqtt::packets::ClientId;
 use std::collections::HashMap;
+use std::collections::hash_map::Iter;
 
 pub trait SessionRepository {
     fn insert(&mut self, session: Session);
     fn exists(&self, client_id: &ClientId) -> bool;
     fn get(&self, client_id: &ClientId) -> Option<&Session>;
+    fn get_mut(&mut self, client_id: &ClientId) -> Option<&mut Session>;
     fn delete(&mut self, client_id: &ClientId) -> Option<Session>;
 
     fn count(&self) -> usize;
+    fn iter(&self) -> Iter<ClientId, Session>;
 }
 
 pub struct InMemorySessionRepository {
@@ -34,12 +37,20 @@ impl SessionRepository for InMemorySessionRepository {
         self.sessions.get(client_id)
     }
 
+    fn get_mut(&mut self, client_id: &ClientId) -> Option<&mut Session> {
+        self.sessions.get_mut(client_id)
+    }
+
     fn delete(&mut self, client_id: &ClientId) -> Option<Session> {
         self.sessions.remove(client_id)
     }
 
     fn count(&self) -> usize {
         self.sessions.len()
+    }
+
+    fn iter(&self) -> Iter<ClientId, Session> {
+        self.sessions.iter()
     }
 }
 
@@ -56,6 +67,7 @@ mod tests {
     use super::*;
     use std::net::{IpAddr, Ipv4Addr};
     use tokio::sync::mpsc;
+    use chrono::{DateTime, Utc};
 
     fn create_session() -> Session {
         let (tx, _rx) = mpsc::channel(32);
@@ -64,6 +76,8 @@ mod tests {
             IpAddr::V4(Ipv4Addr::LOCALHOST),
             false,
             tx,
+            0,
+            Utc::now(),
         )
     }
 
