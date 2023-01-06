@@ -1,8 +1,8 @@
 use crate::mqtt::events::ServerEvent;
 use crate::mqtt::packets::ClientId;
+use chrono::{DateTime, Duration, Utc};
 use std::net::IpAddr;
 use tokio::sync::mpsc::Sender;
-use chrono::{DateTime, Utc, Duration};
 
 pub struct Session {
     client_id: ClientId,
@@ -20,7 +20,7 @@ impl Session {
         persistent: bool,
         sender: Sender<ServerEvent>,
         keep_alive_seconds: u16,
-        last_activity: DateTime<Utc>
+        last_activity: DateTime<Utc>,
     ) -> Self {
         Session {
             client_id,
@@ -50,7 +50,7 @@ impl Session {
 
     pub fn is_keep_alive_expired(&self, now: &DateTime<Utc>) -> bool {
         if self.keep_alive_seconds == 0 {
-            return false
+            return false;
         }
 
         let leeway_seconds = (self.keep_alive_seconds as f32 * 1.5) as i64;

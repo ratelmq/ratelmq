@@ -1,7 +1,7 @@
 use crate::broker::session::Session;
 use crate::mqtt::packets::ClientId;
-use std::collections::HashMap;
 use std::collections::hash_map::Iter;
+use std::collections::HashMap;
 
 pub trait SessionRepository {
     fn insert(&mut self, session: Session);
@@ -65,9 +65,9 @@ impl Default for InMemorySessionRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{DateTime, Utc};
     use std::net::{IpAddr, Ipv4Addr};
     use tokio::sync::mpsc;
-    use chrono::{DateTime, Utc};
 
     fn create_session() -> Session {
         let (tx, _rx) = mpsc::channel(32);

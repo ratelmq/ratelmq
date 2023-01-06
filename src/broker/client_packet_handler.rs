@@ -1,12 +1,13 @@
 use std::net::SocketAddr;
 
+use chrono::Utc;
 use log::{debug, error, info, trace};
 use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{broadcast, mpsc};
 
 use crate::broker::authentication::{FileIdentityManager, IdentityProvider};
-use crate::broker::messaging::MessagingService;
+use crate::broker::messaging::{MessagingService, MessagingServiceSync};
 use crate::broker::session::Session;
 use crate::mqtt::events::{ClientEvent, ServerEvent};
 use crate::mqtt::packets::connack::ConnAckReturnCode;
@@ -14,33 +15,34 @@ use crate::mqtt::packets::suback::SubAckPacket;
 use crate::mqtt::packets::subscribe::SubscribePacket;
 use crate::mqtt::packets::unsuback::UnSubAckPacket;
 use crate::mqtt::packets::unsubscribe::UnsubscribePacket;
-use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, SubAck, UnsubAck};
+use crate::mqtt::packets::ControlPacket::{ConnAck, PingResp, Publish, SubAck, UnsubAck};
 use crate::mqtt::packets::*;
 use crate::settings::Settings;
 
-pub struct Manager {
+pub struct ClientPacketHandler {
     rx: mpsc::Receiver<ClientEvent>,
     ctrl_c_rx: broadcast::Receiver<()>,
     // sessions: SessionService<InMemorySessionRepository>,
-    messaging: MessagingService,
+    messaging: MessagingServiceSync,
     identity_provider: Box<dyn IdentityProvider + Send + Sync>,
 }
 
-impl Manager {
+impl ClientPacketHandler {
     pub fn new(
         rx: Receiver<ClientEvent>,
         ctrl_c_rx: broadcast::Receiver<()>,
         settings: &Settings,
-    ) -> Manager {
+        messaging: MessagingServiceSync,
+    ) -> ClientPacketHandler {
         let identity_provider = Box::new(
             FileIdentityManager::new(settings.authentication.password_file.as_str()).unwrap(),
         );
 
-        Manager {
+        ClientPacketHandler {
             rx,
             ctrl_c_rx,
             // sessions: SessionService::default(),
-            messaging: MessagingService::new(),
+            messaging,
             identity_provider,
         }
     }
@@ -94,7 +96,7 @@ impl Manager {
             // ControlPacket::SubAck(_) => {}
             ControlPacket::Unsubscribe(p) => self.on_unsubscribe(tx, p, &client_id).await,
             // ControlPacket::UnsubAck(_) => {}
-            ControlPacket::PingReq => self.on_ping_req(tx).await,
+            ControlPacket::PingReq => self.on_ping_req(tx, &client_id).await,
             // ControlPacket::PingResp() => {}
             ControlPacket::Disconnect(_) => self.on_disconnect(client_id).await,
             _ => error!("Packet {} not supported", &packet),
@@ -124,16 +126,25 @@ impl Manager {
             }
         };
 
-        let session_present = self.messaging.session_exists(&packet.client_id);
-        if !session_present {
-            let session = Session::new(
-                packet.client_id,
-                address.ip(),
-                !packet.clean_session,
-                sender.clone(),
-            );
-            self.messaging.session_insert(session);
-        }
+        let session_present = {
+            let mut messaging = self.messaging.lock();
+            let maybe_session = messaging.session_get_mut(&packet.client_id);
+            if let Some(session) = maybe_session {
+                session.set_last_activity(Utc::now());
+                true
+            } else {
+                let session = Session::new(
+                    packet.client_id,
+                    address.ip(),
+                    !packet.clean_session,
+                    sender.clone(),
+                    packet.keep_alive_seconds,
+                    Utc::now(),
+                );
+                messaging.session_insert(session);
+                false
+            }
+        };
 
         let conn_ack = ConnAckPacket::new(session_present, ConnAckReturnCode::Accepted);
 
@@ -142,30 +153,34 @@ impl Manager {
             .await
             .unwrap();
 
-        debug!(
-            "Active sessions count: {:?}",
-            self.messaging.session_count()
-        );
+        // debug!(
+        //     "Active sessions count: {:?}",
+        //     self.messaging.session_count()
+        // );
     }
 
     async fn on_disconnect(&mut self, client_id: ClientId) {
         debug!("Client {:?} disconnected", &client_id);
-        self.messaging.disconnect(&client_id);
 
-        debug!(
-            "Active sessions count: {:?}",
-            self.messaging.session_count()
-        );
+        let mut messaging = self.messaging.lock();
+        messaging.disconnect(&client_id);
+
+        // debug!(
+        //     "Active sessions count: {:?}",
+        //     messaging.session_count()
+        // );
     }
 
     async fn on_connection_lost(&mut self, client_id: ClientId) {
         info!("Client {:?} disconnected unexpectedly", &client_id);
-        self.messaging.connection_lost(&client_id);
 
-        debug!(
-            "Active sessions count: {:?}",
-            self.messaging.session_count()
-        );
+        let mut messaging = self.messaging.lock();
+        messaging.connection_lost(&client_id);
+
+        // debug!(
+        //     "Active sessions count: {:?}",
+        //     self.messaging.session_count()
+        // );
     }
 
     async fn on_publish(
@@ -179,7 +194,15 @@ impl Manager {
             &client_id, &publish.message.topic
         );
 
-        self.messaging.publish(&publish.message, &publish).await;
+        let senders_to_publish = {
+            let mut messaging = self.messaging.lock();
+            messaging.senders_to_publish(&publish.message.topic)
+        };
+
+        for sender in senders_to_publish {
+            let event = ServerEvent::ControlPacket(Publish(publish.clone()));
+            sender.send(event).await.unwrap();
+        }
     }
 
     async fn on_subscribe(
@@ -191,10 +214,15 @@ impl Manager {
         debug!("Client subscribed to topics {:?}", &subscribe.subscriptions);
 
         let mut return_codes = Vec::new();
-        for subscription in subscribe.subscriptions {
-            // each subscription request must be handled as a separate subscribe packet
-            let return_code = self.messaging.subscribe(client_id, &subscription);
-            return_codes.push(return_code);
+
+        {
+            let mut messaging = self.messaging.lock();
+
+            for subscription in subscribe.subscriptions {
+                // each subscription request must be handled as a separate subscribe packet
+                let return_code = messaging.subscribe(client_id, &subscription);
+                return_codes.push(return_code);
+            }
         }
 
         let sub_ack = SubAckPacket::new(subscribe.packet_id, return_codes);
@@ -212,7 +240,10 @@ impl Manager {
     ) {
         debug!("Client unsubscribed from topics {:?}", &unsubscribe.topics);
 
-        self.messaging.unsubscribe(client_id, &unsubscribe.topics);
+        {
+            let mut messaging = self.messaging.lock();
+            messaging.unsubscribe(client_id, &unsubscribe.topics);
+        }
 
         let unsub_ack = UnSubAckPacket::new(unsubscribe.packet_id);
         sender
@@ -221,10 +252,31 @@ impl Manager {
             .unwrap();
     }
 
-    async fn on_ping_req(&self, sender: Sender<ServerEvent>) {
-        sender
-            .send(ServerEvent::ControlPacket(PingResp))
-            .await
-            .unwrap();
+    async fn on_ping_req(&mut self, sender: Sender<ServerEvent>, client_id: &ClientId) {
+        let session_present = {
+            let mut messaging = self.messaging.lock();
+
+            let maybe_session = messaging.session_get_mut(client_id);
+
+            if let Some(session) = maybe_session {
+                session.set_last_activity(Utc::now());
+                true
+            } else {
+                false
+            }
+        };
+
+        if session_present {
+            sender
+                .send(ServerEvent::ControlPacket(PingResp))
+                .await
+                .unwrap();
+        } else {
+            error!(
+                "Received PING from not existing session with client id {}",
+                client_id
+            );
+            sender.send(ServerEvent::Disconnect).await.unwrap();
+        }
     }
 }

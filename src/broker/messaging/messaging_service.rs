@@ -9,8 +9,13 @@ use crate::mqtt::packets::suback::SubAckReturnCode;
 use crate::mqtt::packets::ControlPacket::Publish;
 use crate::mqtt::packets::{ClientId, PublishPacket};
 use crate::mqtt::subscription::Subscription;
-use std::collections::hash_map::Iter;
 use chrono::Utc;
+use parking_lot::Mutex;
+use std::collections::hash_map::Iter;
+use std::sync::Arc;
+use tokio::sync::mpsc::Sender;
+
+pub type MessagingServiceSync = Arc<Mutex<MessagingService>>;
 
 pub struct MessagingService {
     sessions: InMemorySessionRepository,
@@ -46,12 +51,12 @@ impl MessagingService {
 
         self.sessions
             .iter()
-            .filter_map(|(client_id, session) | {
-                match session.is_keep_alive_expired(&now) {
+            .filter_map(
+                |(client_id, session)| match session.is_keep_alive_expired(&now) {
                     true => Some(session),
                     false => None,
-                }
-            } )
+                },
+            )
             .collect()
     }
 
@@ -100,5 +105,27 @@ impl MessagingService {
                 }
             }
         }
+    }
+
+    pub fn senders_to_publish(&self, topic: &String) -> Vec<Sender<ServerEvent>> {
+        let mut senders = Vec::new();
+
+        if let Some(client_ids) = self.subscriptions.subscribed_clients(topic) {
+            for c in &client_ids {
+                match self.sessions.get(c) {
+                    Some(session) => {
+                        senders.push(session.sender().clone());
+                    }
+                    None => {
+                        warn!(
+                            "Tried to send message, but session for client {:?} not found",
+                            c
+                        );
+                    }
+                }
+            }
+        }
+
+        senders
     }
 }

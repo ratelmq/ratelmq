@@ -30,3 +30,5 @@ config = "0.10"
 serde = { version="1.0", features = ["derive"] }
 argon2 = "0.3.1"
 rand_core = { version = "0.6", features = ["std"] }
+chrono = "0.4.19"
+parking_lot = "0.11.2"

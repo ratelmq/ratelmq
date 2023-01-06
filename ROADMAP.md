@@ -51,7 +51,7 @@ Please feel free to create a PR if You think that we are missing something!
     1. OAuth/JWT based
     2. Webhooks
     3. Integration with e.g. Postgres, Redis
-4. Extensibility
+3. Extensibility
     1. HTTP API
     2. Webhooks
 
