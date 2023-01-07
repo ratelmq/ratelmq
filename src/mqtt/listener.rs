@@ -10,6 +10,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{broadcast, mpsc};
+use uuid::Uuid;
 
 pub struct MqttListener {
     listener: TcpListener,
@@ -23,7 +24,7 @@ impl MqttListener {
         client_event_tx: mpsc::Sender<ClientEvent>,
         ctrl_c_rx: broadcast::Receiver<()>,
     ) -> Result<MqttListener, Error> {
-        debug!("Binding MQTT TCP to {}", &address);
+        debug!("Binding MQTT TCP listener to {}", &address);
 
         let listener = TcpListener::bind(address).await.unwrap();
         info!("Listening for MQTT TCP connections on {}", &address);
@@ -95,9 +96,16 @@ impl MqttListener {
         if let Ok(packet) = read_packet(&mut read_stream).await {
             trace!("Read the first packet: {:?}", &packet);
 
-            if let ControlPacket::Connect(c) = packet {
+            if let ControlPacket::Connect(mut c) = packet {
                 // todo: handle empty client id
-                client_id = c.client_id.clone();
+                client_id = if c.client_id.is_empty() {
+                    trace!("Client did not provide client id, id will be generated");
+                    Uuid::new_v4().to_string()
+                } else {
+                    c.client_id.clone()
+                };
+
+                c.client_id = client_id.clone();
                 let event = ClientEvent::Connected(c, address, server_event_tx.clone());
                 if let Err(e) = client_event_tx.send(event).await {
                     error!("Error while sending client event to be processed: {}", &e);

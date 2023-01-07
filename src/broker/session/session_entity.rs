@@ -4,6 +4,7 @@ use chrono::{DateTime, Duration, Utc};
 use std::net::IpAddr;
 use tokio::sync::mpsc::Sender;
 
+#[derive(Debug)]
 pub struct Session {
     client_id: ClientId,
     ip: IpAddr,

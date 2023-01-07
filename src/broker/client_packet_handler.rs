@@ -4,10 +4,11 @@ use chrono::Utc;
 use log::{debug, error, info, trace};
 use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::{broadcast, mpsc, oneshot};
+use uuid::Uuid;
 
 use crate::broker::authentication::{FileIdentityManager, IdentityProvider};
-use crate::broker::messaging::{MessagingService, MessagingServiceSync};
+use crate::broker::messaging::{MessagingOperation, MessagingService, MessagingTx};
 use crate::broker::session::Session;
 use crate::mqtt::events::{ClientEvent, ServerEvent};
 use crate::mqtt::packets::connack::ConnAckReturnCode;
@@ -23,7 +24,8 @@ pub struct ClientPacketHandler {
     rx: mpsc::Receiver<ClientEvent>,
     ctrl_c_rx: broadcast::Receiver<()>,
     // sessions: SessionService<InMemorySessionRepository>,
-    messaging: MessagingServiceSync,
+    // messaging: MessagingServiceSync,
+    messaging_tx: MessagingTx,
     identity_provider: Box<dyn IdentityProvider + Send + Sync>,
 }
 
@@ -32,7 +34,8 @@ impl ClientPacketHandler {
         rx: Receiver<ClientEvent>,
         ctrl_c_rx: broadcast::Receiver<()>,
         settings: &Settings,
-        messaging: MessagingServiceSync,
+        // messaging: MessagingServiceSync,
+        messaging_tx: MessagingTx,
     ) -> ClientPacketHandler {
         let identity_provider = Box::new(
             FileIdentityManager::new(settings.authentication.password_file.as_str()).unwrap(),
@@ -42,7 +45,8 @@ impl ClientPacketHandler {
             rx,
             ctrl_c_rx,
             // sessions: SessionService::default(),
-            messaging,
+            // messaging,
+            messaging_tx,
             identity_provider,
         }
     }
@@ -51,7 +55,7 @@ impl ClientPacketHandler {
         loop {
             select! {
                 _ = self.ctrl_c_rx.recv() => {
-                    trace!("Stopping manager");
+                    debug!("Stopping manager...");
                     break;
                 }
                  maybe_event = self.rx.recv() => {
@@ -59,6 +63,7 @@ impl ClientPacketHandler {
                         trace!("Got event {:?}", &event);
 
                         match event {
+
                             ClientEvent::Connected(c, address, tx) => self.on_connect(tx, c, address).await,
                             ClientEvent::ControlPacket(client_id, packet, tx) => {
                                 self.on_packet(client_id, packet, tx).await;
@@ -72,6 +77,8 @@ impl ClientPacketHandler {
                  }
             }
         }
+
+        debug!("Stopped Manager");
     }
 
     async fn on_packet(
@@ -109,7 +116,8 @@ impl ClientPacketHandler {
         packet: ConnectPacket,
         address: SocketAddr,
     ) {
-        debug!("New client {:?} connected", &packet.client_id);
+        let client_id = packet.client_id;
+        debug!("New client {:?} connected", &client_id);
 
         if let Some(user_name) = packet.user_name {
             let password = packet.password.unwrap();
@@ -118,7 +126,7 @@ impl ClientPacketHandler {
 
                 let conn_ack = ConnAckPacket::new(false, ConnAckReturnCode::NotAuthorized);
                 sender
-                    .send(ServerEvent::ControlPacket(ControlPacket::ConnAck(conn_ack)))
+                    .send(ServerEvent::ControlPacket(ConnAck(conn_ack)))
                     .await
                     .unwrap();
                 sender.send(ServerEvent::Disconnect).await.unwrap();
@@ -127,21 +135,28 @@ impl ClientPacketHandler {
         };
 
         let session_present = {
-            let mut messaging = self.messaging.lock();
-            let maybe_session = messaging.session_get_mut(&packet.client_id);
+            let (tx, rx) = oneshot::channel();
+            let op = MessagingOperation::SessionGet { client_id: client_id.clone(), resp: tx };
+
+            self.messaging_tx.send(op).await.unwrap();
+            let maybe_session = rx.await.unwrap();
+
             if let Some(session) = maybe_session {
-                session.set_last_activity(Utc::now());
+                // session.set_last_activity(Utc::now());
                 true
             } else {
                 let session = Session::new(
-                    packet.client_id,
+                    client_id,
                     address.ip(),
                     !packet.clean_session,
                     sender.clone(),
                     packet.keep_alive_seconds,
                     Utc::now(),
                 );
-                messaging.session_insert(session);
+                let (insert_tx, insert_rx) = oneshot::channel();
+                let op = MessagingOperation::SessionInsert { session, resp: insert_tx };
+                self.messaging_tx.send(op).await.unwrap();
+                let insert_result = insert_rx.await.unwrap();
                 false
             }
         };
@@ -162,8 +177,11 @@ impl ClientPacketHandler {
     async fn on_disconnect(&mut self, client_id: ClientId) {
         debug!("Client {:?} disconnected", &client_id);
 
-        let mut messaging = self.messaging.lock();
-        messaging.disconnect(&client_id);
+        let (tx, rx) = oneshot::channel();
+        let op = MessagingOperation::ConnectionDisconnected { client_id, resp: tx };
+
+        self.messaging_tx.send(op).await.unwrap();
+        let maybe_session = rx.await.unwrap();
 
         // debug!(
         //     "Active sessions count: {:?}",
@@ -174,8 +192,11 @@ impl ClientPacketHandler {
     async fn on_connection_lost(&mut self, client_id: ClientId) {
         info!("Client {:?} disconnected unexpectedly", &client_id);
 
-        let mut messaging = self.messaging.lock();
-        messaging.connection_lost(&client_id);
+        let (tx, rx) = oneshot::channel();
+        let op = MessagingOperation::ConnectionLost { client_id, resp: tx };
+
+        self.messaging_tx.send(op).await.unwrap();
+        let maybe_session = rx.await.unwrap();
 
         // debug!(
         //     "Active sessions count: {:?}",
@@ -194,10 +215,11 @@ impl ClientPacketHandler {
             &client_id, &publish.message.topic
         );
 
-        let senders_to_publish = {
-            let mut messaging = self.messaging.lock();
-            messaging.senders_to_publish(&publish.message.topic)
-        };
+        let (tx, rx) = oneshot::channel();
+        let op = MessagingOperation::SendersToPublish { topic: publish.message.topic.clone(), resp: tx };
+
+        self.messaging_tx.send(op).await.unwrap();
+        let senders_to_publish = rx.await.unwrap();
 
         for sender in senders_to_publish {
             let event = ServerEvent::ControlPacket(Publish(publish.clone()));
@@ -211,18 +233,20 @@ impl ClientPacketHandler {
         subscribe: SubscribePacket,
         client_id: &ClientId,
     ) {
-        debug!("Client subscribed to topics {:?}", &subscribe.subscriptions);
+        debug!("Client {:?} subscribed to topics {:?}", client_id, &subscribe.subscriptions);
 
         let mut return_codes = Vec::new();
 
-        {
-            let mut messaging = self.messaging.lock();
+        for subscription in subscribe.subscriptions {
+            // each subscription request must be handled as a separate subscribe packet
 
-            for subscription in subscribe.subscriptions {
-                // each subscription request must be handled as a separate subscribe packet
-                let return_code = messaging.subscribe(client_id, &subscription);
-                return_codes.push(return_code);
-            }
+            let (tx, rx) = oneshot::channel();
+            let op = MessagingOperation::Subscribe { client_id: client_id.clone(), subscription, resp: tx };
+
+            self.messaging_tx.send(op).await.unwrap();
+            let return_code = rx.await.unwrap();
+
+            return_codes.push(return_code);
         }
 
         let sub_ack = SubAckPacket::new(subscribe.packet_id, return_codes);
@@ -238,12 +262,13 @@ impl ClientPacketHandler {
         unsubscribe: UnsubscribePacket,
         client_id: &ClientId,
     ) {
-        debug!("Client unsubscribed from topics {:?}", &unsubscribe.topics);
+        debug!("Client {:?} unsubscribed from topics {:?}", client_id, &unsubscribe.topics);
 
-        {
-            let mut messaging = self.messaging.lock();
-            messaging.unsubscribe(client_id, &unsubscribe.topics);
-        }
+        let (tx, rx) = oneshot::channel();
+        let op = MessagingOperation::Unsubscribe { client_id: client_id.clone(), topics: unsubscribe.topics, resp: tx };
+
+        self.messaging_tx.send(op).await.unwrap();
+        let _ = rx.await.unwrap();
 
         let unsub_ack = UnSubAckPacket::new(unsubscribe.packet_id);
         sender
@@ -253,17 +278,28 @@ impl ClientPacketHandler {
     }
 
     async fn on_ping_req(&mut self, sender: Sender<ServerEvent>, client_id: &ClientId) {
+        // let session_present = {
+        //     let (tx, rx) = oneshot::channel();
+        //     let op = MessagingOperation::SessionGet { client_id: client_id.clone(), resp: tx };
+        //
+        //     self.messaging_tx.send(op).await.unwrap();
+        //     let maybe_session = rx.await.unwrap();
+        //
+        //     info!("Client {:?}, Session: {:?}", client_id, &maybe_session);
+        //     if let Some(session) = maybe_session {
+        //         // session.set_last_activity(Utc::now());
+        //         true
+        //     } else {
+        //         false
+        //     }
+        // };
+
         let session_present = {
-            let mut messaging = self.messaging.lock();
+            let (tx, rx) = oneshot::channel();
+            let op = MessagingOperation::SessionExists { client_id: client_id.clone(), resp: tx };
 
-            let maybe_session = messaging.session_get_mut(client_id);
-
-            if let Some(session) = maybe_session {
-                session.set_last_activity(Utc::now());
-                true
-            } else {
-                false
-            }
+            self.messaging_tx.send(op).await.unwrap();
+            rx.await.unwrap()
         };
 
         if session_present {
